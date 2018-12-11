@@ -1,14 +1,12 @@
-main = ...
+args = ...
 
--- TO DO:
--- 1) ensure that the toggle commands (e.g. /dps debug ) show a message indicating the 
--- 		state change
--- 2) Remove the several initialization messages
-
-
-
-Deeps = LibStub("AceAddon-3.0"):NewAddon("Deeps", "AceConsole-3.0", "AceEvent-3.0")
-Config = LibStub("AceConfig-3.0")
+local Deeps = LibStub("AceAddon-3.0"):NewAddon(
+	"Deeps", 
+	"AceConsole-3.0", 
+	"AceEvent-3.0"
+)
+local Peg = LibStub("LibPeg-1.0")
+local Config = LibStub("AceConfig-3.0")
 
 local options = {
 	name="Deeps",
