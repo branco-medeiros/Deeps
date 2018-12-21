@@ -2,7 +2,7 @@
 ## Version: 0.1
 ## Title: Deeps
 ## Author: glub@Terokkar
-## Notes: Action priority for damage dealers and tanks alike; Uses SimCraft APL's
+## Notes: Action priority advisor
 ## SavedVariables: DeepsDB
 ## OptionalDeps: Ace3
 ## X-Embeds: Ace3
