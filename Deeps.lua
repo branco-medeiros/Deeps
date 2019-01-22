@@ -5,7 +5,6 @@ local Deeps = LibStub("AceAddon-3.0"):NewAddon(
 	"AceConsole-3.0", 
 	"AceEvent-3.0"
 )
-local Peg = LibStub("LibPeg-1.0")
 local Config = LibStub("AceConfig-3.0")
 
 local options = {
