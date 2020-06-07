@@ -24,8 +24,8 @@ local options = {
 			type="toggle",
 			name="Debug",
 			desc="Enables/Disables the action priority debugging",
-			get="GetDebug",
-			set="SetDebug"
+			get="debugging",
+			set="debugging"
 		}
 		
 	}
@@ -33,7 +33,7 @@ local options = {
 }
 
 function Deeps:Debug(...)
-  if self:GetDebug() then self:Print(...) end
+  if self:debugging() then self:Print(...) end
 end
 
 function Deeps:OnInitialize()
@@ -86,12 +86,9 @@ function Deeps:ShowCommands()
 	self:Print("CmdList called")
 end
 
-function Deeps:GetDebug()
+function Deeps:debugging(value)
+  if(value ~= nil) self.db.profile.debug = value
 	return self.db.profile.debug
-end
-
-function Deeps:SetDebug(value)
-	self.db.profile.debug = value
 end
 
 function Deeps:GetSpecData(id)
@@ -147,29 +144,76 @@ end
 
 function Deeps:InitializeUI()
   -- main frame
+  -- CurrentTab (the currently selected tab frame (from this.Tabs) 
+  -- MainFrame  (this frame)
+  -- SpecLabel  (contaians the spec text)
+  -- TabGroup   (the actual tab control)
+  -- Tabs       (dict with each tab content)
+  --[[
+
+    +-------------------------------------+
+    | SpecLabel                           |
+    +-------------------------------------+
+    |[Spells] [Slots] [Conditions]        |
+    +-------------------------------------+
+    |                                     |
+    |    <depends on the selected tab>    |
+    |                                     |
+    |                                     |
+    |                                     |
+    +-------------------------------------+
+    |                             [Close] |
+    +-------------------------------------+
+
+  ]]
+  
 	local this = self
+  
+  -- main frame
+
 	local frame = AceGUI:Create("Window")
 	frame:SetTitle("Deeps")
 	frame:SetWidth(600)
 	frame:SetHeight(500)
 	frame:SetCallback("OnClose", function(widget) widget:Hide() end)
-	self.MainFrame = frame
   frame:SetLayout("Flow")
-  
+	self.MainFrame = frame
+
+  -- spec label
+
   local label = AceGUI:Create("Label")
   label:SetFullWidth(true)
   label:SetFontObject(GameFontHilightLarge)
   frame:AddChild(label)
   self.SpecLabel = label
 
-	self.TabList = 	self:CreateMainTabs(frame)
-	
-	local tabs = {}
-	tabs.prio = self:CreatePrioritiesTab()
-	tabs.spells = self:CreateSpellsTab()
-	tabs.conditions = self:CreateConditionsTab()
-	tabs.slots = self:CreateSlotsTab()
-	self.tabs = tabs
+
+  --- tabs controls
+
+	local tabs = AceGUI:Create("TabGroup")
+  tabs:SetFullWidth(true)
+  tabs:SetTabs({
+    {value ="prio", text ="Spells"}, 
+    {value ="slots", text ="Slots"},
+    {value ="conditions", text ="Conditions"}
+  })
+	tabs:SetLayout("Flow")
+	frame:AddChild(tabs)
+	tabs:SetCallback("OnGroupSelected", function(container, event, group)
+    local prev = this.CurrentTab
+    local cur = this.Tabs[group]
+		if prev then prev:Deactivate() end
+		if cur then cur:Activate(container) end
+    this.CurrentTab = cur
+	end)
+  self.TabGroup = tabs
+
+  -- tab panels 
+	self.Tabs = {
+    prio = self:CreatePrioritiesTab(),
+    slots = self:CreateSlotsTab(),
+    conditions = self.CreateConditionsTab()
+  }
 
 	frame:Hide()
 	
@@ -179,27 +223,44 @@ function Deeps:GetClassId(class, id)
   return class .. '-' .. id
 end
 
-function Deeps:CreateMainTabs(frame)
-	local this = self
-	return self:CreateTabControl(
-		frame, 
-		{
-			{value ="prio", text ="Priority"}, 
-			{value ="spells", text ="Spells"},
-			{value ="conditions", text ="Conditions"},
-			{value ="slots", text ="Slots"}
-		},
-		function(group)
-			local prev = this.CurrentTab
-      local cur = this.tabs[group]
-      this.CurrentTab = cur
-			return prev, cur
-		end
-	)
-end
-
 
 function Deeps:CreatePrioritiesTab()
+
+--[[
+ Prio:
+ +-------------------+  Spell
+ |                 | |  [                        ] [ Find ]
+ |                 | |  +--+ 
+ |                 | |  |  | <Spell Name>
+ |                 | |  +--+ 
+ |                 | |  Desciption
+ |                 | |  [                                  ]
+ |                 | |  [X] Show Key or [       ]
+ |                 | |  [X] No Target
+ |                 | |  [X] No Range
+ |                 | |  [X] Not Instant
+ |                 | |  [X] While Moving
+ |                 | |  [X] Use range from Spell [         ]
+ |                 | |      +-+
+ |                 | |      | | Spell
+ |                 | |      +-+
+ |                 | |  Condition
+ |                 | |  +--------------------------------+-+
+ |                 | |  |[X] Condition                   | |
+ |                 | |  |[X] Condition                   | |
+ |                 | |  |[X] Condition                   | |
+ |                 | |  |[X] Condition                   | |
+ |                 | |  |[X] Condition                   | |
+ +-------------------+  |[X] Condition                   | |
+       [^] [v] [X] [+]  +--------------------------------+-+
+                        [X] All [X] Any [X] None
+                                     [   save  ]  [ Cancel ]
+       ^                
+       +---  [X] +--+ Spell Name
+                 |  | Usage description
+                 +--+
+]]
+
 
 	local tab = self:CreateTab("prio")
 	
@@ -250,21 +311,6 @@ function Deeps:CreateSlotsTab()
 	local tab = self:CreateTab("slots")
 	self:CreateLabel(tab, "Slots Tab")
 	return tab
-end
-
-function Deeps:CreateTabControl(frame, tabs, onSelect)
-  item = AceGUI:Create("TabGroup")
-  item:SetFullWidth(true)
-  item:SetTabs(tabs)
-	item:SetLayout("Flow")
-	frame:AddChild(item)
-	item:SetCallback("OnGroupSelected", function(container, event, group)
-		local prev, cur = onSelect(group)
-		if prev then prev:Deactivate() end
-		if cur then cur:Activate(container) end
-	end)
-	
-	return item
 end
 
 
