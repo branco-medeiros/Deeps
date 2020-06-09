@@ -14,6 +14,71 @@ _G.Deeps = Deeps
 local Config = LibStub("AceConfig-3.0")
 local AceGUI = LibStub("AceGUI-3.0")
 
+local function GetFrameHeight(frame)
+  return frame.height or frame:GetHeight() or 0
+end
+
+local function GetFrameWidth(frame)
+  return frame.width or frame:GetWidth() or 0
+end
+
+
+AceGUI:RegisterLayout("HeaderMainFooter",
+	function(content, children)
+    local last = #children
+    if(last > 0) then
+      local height = 0
+      local width = GetFrameWidth(content)
+      local height = GetFrameHeight(content)
+      
+      
+      local header = children[1]
+      local fheader = header.frame
+      fheader:ClearAllPoints()
+      fheader:Show()
+      fheader:SetPoint("TOPLEFT", content)
+      fheader:SetPoint("TOPRIGHT", content)
+      fheader:SetWidth(width)
+      if(header.DoLayout) then header:DoLayout() end
+      
+      if(last > 1) then
+        local footer = children[last]
+        local ffooter = footer.frame
+        ffooter:ClearAllPoints()
+        ffooter:Show()
+        ffooter:SetPoint("BOTTOMLEFT", content)
+        ffooter:SetWidth(width)      
+        if(footer.DoLayout) then footer:DoLayout() end
+        if(last > 2) then
+        
+          local ItemHeight = height - GetFrameHeight(fheader) - GetFrameHeight(ffooter) / (last-2)
+          
+          for i = 2, last-1  do
+            local child = children[i]
+            local frame = child.frame
+            frame:ClearAllPoints()
+            frame:Show()
+            frame:SetWidth(width)
+            frame:SetHeight(ItemHeight)
+            frame:SetPoint("TOPLEFT", children[-1], "BOTTOMLEFT")
+            if(child.DoLayout) then child:DoLayout() end
+          end
+
+          --children[last-1].frame:SetPoint("BOTTOMLEFT", ffooter, "TOPLEFT")
+        else
+          footer:SetHeight(height - GetFrameHeight(fheader))
+          ffooter:SetPoint("TOPLEFT", fheader, "BOTTOMLEFT")
+          ffooter:SetPoint("TOPRIGHT", fheader, "BOTTOMRIGHT")
+        end
+      else
+        header.height = height
+        header:SetPoint("BOTTOMLEFT", content)
+        header:SetPoint("BOTTOMRIGHT", content)        
+      end
+		end
+		if(content.obj.LayoutFinished) then xpcall(content.obj.LayoutFinished, content.obj, nil, height) end
+	end)
+
 local options = {
 	name=DEEPS,
 	handler=Deeps,
@@ -87,7 +152,7 @@ function Deeps:ShowCommands()
 end
 
 function Deeps:debugging(value)
-  if(value ~= nil) self.db.profile.debug = value
+  if(value ~= nil) then self.db.profile.debug = value end
 	return self.db.profile.debug
 end
 
@@ -146,23 +211,29 @@ function Deeps:InitializeUI()
   -- main frame
   -- CurrentTab (the currently selected tab frame (from this.Tabs) 
   -- MainFrame  (this frame)
+  
+  -- Header     (the header)
+  -- Main       (the tab container)
+  -- Footer     (the footer)
+  
   -- SpecLabel  (contaians the spec text)
   -- TabGroup   (the actual tab control)
   -- Tabs       (dict with each tab content)
+
   --[[
 
     +-------------------------------------+
-    | SpecLabel                           |
+    | SpecLabel                           | <- header
     +-------------------------------------+
-    |[Spells] [Slots] [Conditions]        |
+    |[Spells] [Slots] [Conditions]        | <- main
+    +-------------------------------------+   
+    |                                     |   
+    |    <depends on the selected tab>    |   
+    |                                     |   
+    |                                     |
+    |                                     |
     +-------------------------------------+
-    |                                     |
-    |    <depends on the selected tab>    |
-    |                                     |
-    |                                     |
-    |                                     |
-    +-------------------------------------+
-    |                             [Close] |
+    |                             [Close] | <- footer
     +-------------------------------------+
 
   ]]
@@ -176,15 +247,33 @@ function Deeps:InitializeUI()
 	frame:SetWidth(600)
 	frame:SetHeight(500)
 	frame:SetCallback("OnClose", function(widget) widget:Hide() end)
-  frame:SetLayout("Flow")
+  frame:SetLayout("HeaderMainFooter")
 	self.MainFrame = frame
 
+  local header = AceGUI:Create("SimpleGroup")
+  header:SetLayout("Fill")
+  header:SetHeight(40)
+  frame:AddChild(header)
+  self.Header = header
+  
+  local main = AceGUI:Create("SimpleGroup")
+  main:SetLayout("Fill")
+  frame:AddChild(main)
+  self.Main = main
+  
+  local footer = AceGUI:Create("SimpleGroup")
+  footer:SetLayout("Fill")
+  footer:SetHeight(40)
+  frame:AddChild(footer)
+  self.Footer = footer
+  
   -- spec label
 
   local label = AceGUI:Create("Label")
   label:SetFullWidth(true)
   label:SetFontObject(GameFontHilightLarge)
-  frame:AddChild(label)
+  header:AddChild(label)
+  label:SetText("Spec name...")
   self.SpecLabel = label
 
 
@@ -198,7 +287,7 @@ function Deeps:InitializeUI()
     {value ="conditions", text ="Conditions"}
   })
 	tabs:SetLayout("Flow")
-	frame:AddChild(tabs)
+	main:AddChild(tabs)
 	tabs:SetCallback("OnGroupSelected", function(container, event, group)
     local prev = this.CurrentTab
     local cur = this.Tabs[group]
@@ -212,11 +301,17 @@ function Deeps:InitializeUI()
 	self.Tabs = {
     prio = self:CreatePrioritiesTab(),
     slots = self:CreateSlotsTab(),
-    conditions = self.CreateConditionsTab()
+    conditions = self:CreateConditionsTab()
   }
 
-	frame:Hide()
+  -- closebutton
+  local closebtn = AceGUI:Create("Button")
+  closebtn:SetText("Close")
+  footer:AddChild(closebtn)
+  self.CloseBtn = closebtn
 	
+	--frame:Hide()
+
 end
 
 function Deeps:GetClassId(class, id)
