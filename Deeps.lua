@@ -4,6 +4,9 @@ local DEEPS = "Deeps"
 local DEEPS_DB = "DeepsDB"
 local DEEPS_CMD = "deeps"
 local DPS_CMD = "dps"
+local CONTAINER = "SimpleGroup"
+
+local DEFAULT_BDR_TEX = 'Interface\\DialogFrame\\UI-DialogBox-Background-Dark'
 
 local Deeps = LibStub("AceAddon-3.0"):NewAddon(
 	DEEPS, 
@@ -22,61 +25,69 @@ local function GetFrameWidth(frame)
   return frame.width or frame:GetWidth() or 0
 end
 
+local function FinishLayout(content, height)
+	if content.obj.LayoutFinished then 
+		content.obj:LayoutFinished(nil, height) 
+	end
+end
+
+
+local function SetBorder(frame, size, r, g, b)
+  if frame.frame and not frame.SetBackdrop then frame = frame.frame end
+  if not size or size == 0 then
+    frame:SetBackdrop({edgeFile = nil, edgeSize = 0})
+  else
+    frame:SetBackdrop({edgeFile=DEFAULT_BDR_TEX, edgeSize=size})
+    frame:SetBackdropBorderColor(r or 0, g or 0, b or 0)
+  end --if
+end -- fn Icon_SetBorder
+
+
+AceGUI:RegisterLayout("None", function(content, children)
+	FinishLayout(content)
+end)
 
 AceGUI:RegisterLayout("HeaderMainFooter",
 	function(content, children)
     local last = #children
-    if(last > 0) then
-      local height = 0
-      local width = GetFrameWidth(content)
-      local height = GetFrameHeight(content)
-      
-      
-      local header = children[1]
-      local fheader = header.frame
-      fheader:ClearAllPoints()
-      fheader:Show()
-      fheader:SetPoint("TOPLEFT", content)
-      fheader:SetPoint("TOPRIGHT", content)
-      fheader:SetWidth(width)
-      if(header.DoLayout) then header:DoLayout() end
-      
-      if(last > 1) then
-        local footer = children[last]
-        local ffooter = footer.frame
-        ffooter:ClearAllPoints()
-        ffooter:Show()
-        ffooter:SetPoint("BOTTOMLEFT", content)
-        ffooter:SetWidth(width)      
-        if(footer.DoLayout) then footer:DoLayout() end
-        if(last > 2) then
-        
-          local ItemHeight = height - GetFrameHeight(fheader) - GetFrameHeight(ffooter) / (last-2)
-          
-          for i = 2, last-1  do
-            local child = children[i]
-            local frame = child.frame
-            frame:ClearAllPoints()
-            frame:Show()
-            frame:SetWidth(width)
-            frame:SetHeight(ItemHeight)
-            frame:SetPoint("TOPLEFT", children[-1], "BOTTOMLEFT")
-            if(child.DoLayout) then child:DoLayout() end
-          end
+		local width = GetFrameWidth(content)
+		local height = GetFrameHeight(content)
+		local clientheight = height
+		local itemheight = 0
+		for i = 1, last do
+			local j = (i == 1 and i) or (i == 2 and last) or i-1 
+			local child = children[j]
+			local frame = child.frame
+			local done = false
+			frame:ClearAllPoints()
+			frame:Show()
+			frame:SetWidth(width)
+			frame:SetPoint("LEFT", content)
+			frame:SetPoint("RIGHT", content)
+			height = GetFrameHeight(frame)
+			
+			if j == 1 then
+				frame:SetPoint("TOP", content)
+				clientheight = clientheight - height
+				done = true
+			end
+			
+			if j == last then
+				frame:SetPoint("BOTTOM", content)
+				if not done then 
+					clientheight = clientheight - height
+					if last > 2 then itemheight = clientheight / (last-2) end
+				end
+				done = true
+			end
 
-          --children[last-1].frame:SetPoint("BOTTOMLEFT", ffooter, "TOPLEFT")
-        else
-          footer:SetHeight(height - GetFrameHeight(fheader))
-          ffooter:SetPoint("TOPLEFT", fheader, "BOTTOMLEFT")
-          ffooter:SetPoint("TOPRIGHT", fheader, "BOTTOMRIGHT")
-        end
-      else
-        header.height = height
-        header:SetPoint("BOTTOMLEFT", content)
-        header:SetPoint("BOTTOMRIGHT", content)        
-      end
+			if not done then
+				frame:SetHeight(itemheight)
+				frame:SetPoint("TOP", children[j-1].frame, "BOTTOM")
+			end
+			if child.DoLayout then child:DoLayout() end
 		end
-		if(content.obj.LayoutFinished) then xpcall(content.obj.LayoutFinished, content.obj, nil, height) end
+		FinishLayout(content)
 	end)
 
 local options = {
@@ -102,10 +113,16 @@ function Deeps:Debug(...)
 end
 
 function Deeps:OnInitialize()
-  local defaults = self:GetDefaultSettings()
-  self.db = LibStub("AceDB-3.0"):New(DEEPS_DB, defaults, true)
+	local defaults = self:GetDefaultSettings()
+	-- handle profiles
+	self.db = LibStub("AceDB-3.0"):New(DEEPS_DB, defaults, true)
+	
   self:Debug("Addon initializing")
-  Config:RegisterOptionsTable(DEEPS, options, {DEEPS_CMD, DPS_CMD})
+
+	-- configuration window (via Interface > Addons > Deeps)
+	Config:RegisterOptionsTable(DEEPS, options, {DEEPS_CMD, DPS_CMD})
+	
+	--chat commands
 	self:RegisterChatCommand(DEEPS_CMD, "HandleCommand")
 	self:RegisterChatCommand(DPS_CMD, "HandleCommand")
 end
@@ -114,6 +131,7 @@ function Deeps:OnEnable()
 	self:Debug("Addon enabled...")
   self:InitializeUI()
 	self:OnSpecChange()
+	--self.TabGroup:SelectTab("prio")
 end
 
 function Deeps:OnDisable()
@@ -182,9 +200,10 @@ end
 function Deeps:Reload()
   -- fills the interface with the specified spec data
 
-  self.SpecLabel:SetText(self.SpecName)
-  
-  -- clear editors
+  self.SpecLabel:SetText(self.SpecText)
+	self.TabGroup:SelectTab("prio")
+
+	-- clear editors
 end
 
 function Deeps:ClearUI()
@@ -208,6 +227,21 @@ function Deeps:SelectPriority(value)
 end
 
 function Deeps:InitializeUI()
+
+ if not self.MainFrame then
+		self:CreateMainFrame()
+		-- register the main frame to closwe with ESC
+		_G["Deeps.Frame"] = self.MainFrame
+		tinsert(UISpecialFrames, "Deeps.Frame")
+ end
+end
+
+function Deeps:GetClassId(class, id)
+  return class .. '-' .. id
+end
+
+
+function Deeps:CreateMainFrame()
   -- main frame
   -- CurrentTab (the currently selected tab frame (from this.Tabs) 
   -- MainFrame  (this frame)
@@ -250,20 +284,25 @@ function Deeps:InitializeUI()
   frame:SetLayout("HeaderMainFooter")
 	self.MainFrame = frame
 
-  local header = AceGUI:Create("SimpleGroup")
+  local header = AceGUI:Create(CONTAINER)
   header:SetLayout("Fill")
-  header:SetHeight(40)
+  header:SetHeight(30)
+	header.frame:SetBackdropColor(0.5, 0, 0, 1)
   frame:AddChild(header)
   self.Header = header
   
-  local main = AceGUI:Create("SimpleGroup")
+  local main = AceGUI:Create(CONTAINER)
   main:SetLayout("Fill")
+	main.frame:SetBackdropColor(0, 0.5, 0, 1)
   frame:AddChild(main)
   self.Main = main
   
-  local footer = AceGUI:Create("SimpleGroup")
-  footer:SetLayout("Fill")
-  footer:SetHeight(40)
+  local footer = AceGUI:Create(CONTAINER)
+  --footer:SetLayout("Table")
+	--footer:SetUserData("table", {columns= {1}, space=10, alignH="RIGHT", alignV="CENTER"})
+	footer:SetLayout("None")
+	footer:SetAutoAdjustHeight(false)
+  footer:SetHeight(30)
   frame:AddChild(footer)
   self.Footer = footer
   
@@ -286,7 +325,7 @@ function Deeps:InitializeUI()
     {value ="slots", text ="Slots"},
     {value ="conditions", text ="Conditions"}
   })
-	tabs:SetLayout("Flow")
+	tabs:SetLayout("Fill")
 	main:AddChild(tabs)
 	tabs:SetCallback("OnGroupSelected", function(container, event, group)
     local prev = this.CurrentTab
@@ -305,22 +344,23 @@ function Deeps:InitializeUI()
   }
 
   -- closebutton
+	
   local closebtn = AceGUI:Create("Button")
   closebtn:SetText("Close")
-  footer:AddChild(closebtn)
+	closebtn:SetWidth(150)
+	footer:AddChild(closebtn)
+	closebtn:ClearAllPoints()
+	closebtn:SetPoint("RIGHT", footer.content, "RIGHT", -10, 0)
+
   self.CloseBtn = closebtn
 	
-	--frame:Hide()
+	return self
 
-end
 
-function Deeps:GetClassId(class, id)
-  return class .. '-' .. id
 end
 
 
 function Deeps:CreatePrioritiesTab()
-
 --[[
  Prio:
  +-------------------+  Spell
@@ -357,32 +397,98 @@ function Deeps:CreatePrioritiesTab()
 ]]
 
 
+	-- print("creating prio tab")
 	local tab = self:CreateTab("prio")
-	
+	tab:SetLayout("Flow")
+	--tab:SetUserData("table", {columns={.4, .6}, alignH="fill", alignV="fill", space=5})
 	--first col
-	col = AceGUI:Create("SimpleGroup")
-	col:SetWidth(250)
+	-- print(">> first col")
+	col = AceGUI:Create("InlineGroup") --CONTAINER)
+	col:SetLayout("HeaderMainFooter")
 	col:SetFullHeight(true)
-	col:SetLayout("Flow")
+	col:SetRelativeWidth(0.4)
+	col:SetAutoAdjustHeight(false)
 	tab:AddChild(col)
 
-	self:CreateLabel(col, "Priority List")
+  -- first-col > priority list label
+	-- print(">> first-col > priority list label")
+	self:CreateLabel(col, "Priority List:")
+	
+	-- first-col > priorities scroll
+	-- print(">> first-col > priority scroll")
 	self.PriorityScroll = self:CreateScroll(col, 200)
-	self.MoveUp = self:CreateButton(col, "Move Up")
-	self.MoveDown = self:CreateButton(col, "Move Down")
+
+	-- first-col > priority edit buttons
+	-- print(">> first-col > priority edit buttons")
+	local temp = AceGUI:Create(CONTAINER)
+	temp:SetLayout("Flow")
+	temp:SetHeight(80)
+	col:AddChild(temp)
+	self.MovePrioUp = self:CreateButton(temp, "Up", 60)
+	self.MovePrioDown = self:CreateButton(temp, "Down", 70)
+	self.CreatePrio = self:CreateButton(temp, "New", 60)
+	self.DeletePrio = self:CreateButton(temp, "Del", 60)
+ 
 
 	--second col
-	col = AceGUI:Create("SimpleGroup")
-	col:SetWidth(250)
+	-- print(">> second-col")
+	col = AceGUI:Create("InlineGroup") --CONTAINER)
+	col:SetLayout("List")
 	col:SetFullHeight(true)
-	col:SetLayout("Flow")
+	col:SetRelativeWidth(0.6)
+	col:SetAutoAdjustHeight(false)
 	tab:AddChild(col)
+
+	-- second-col > find spell 
+	-- print(">> second-col > find spell")
+	self.FindSpell = self:CreateEditControl(col, "Find", false)
 	
-	self.PriorityName = self:CreateEditControl(col, "Name")
-  self.PrioritySpells = self:CreateDropdownControl(col, "Spell")
+	
+	-- second-col > spell info (icon + spell name)
+	
+	-- second-col > description
+	-- print(">> second-col > description")
+	self.PrioDescription = self:CreateMultilineEditControl(col, "Description")
+	
+	-- second-col > flags
+	-- print(">> second-col > flags")
+	self.PrioShowKey = self:CreateCheckBox(col, "Show Key")
+	self.PrioNoTarget = self:CreateCheckBox(col, "No Target")
+	self.PrioNoRange = self:CreateCheckBox(col, "No Range")
+	self.PrioNotInstant = self:CreateCheckBox(col, "Not Instant")
+	self.PrioWhileMoving = self:CreateCheckBox(col, "While Moving")
+
+	-- second-col > label for conditions
+	-- print(">> second-col > conditions")
   self:CreateLabel(col, "Conditions")
-  self.PriorityConditions = self:CreateScroll(col)
-  self.SavePrio = self:CreateButton(col, "Save")
+
+	-- second-col > condition list
+	local scrollbox = AceGUI:Create(CONTAINER)
+	scrollbox:SetLayout("Fill")
+	scrollbox:SetAutoAdjustHeight(false)
+	scrollbox:SetRelativeWidth(1)
+	scrollbox:SetHeight(100)
+	col:AddChild(scrollbox)
+  self.PriorityConditions = self:CreateScroll(scrollbox)
+	
+
+	-- second-col > save button
+	-- print(">> second-col > save btn")
+
+	-- usa a container for the button
+	local temp = AceGUI:Create(CONTAINER)
+	temp:SetLayout("None")
+	temp:SetAutoAdjustHeight(false)
+	temp:SetRelativeWidth(1)
+	temp:SetHeight(80)
+	col:AddChild(temp)
+
+	local save = self:CreateButton(temp, "Save")
+	save:ClearAllPoints()
+	save:SetPoint("RIGHT", temp.content, "RIGHT", -10, 0)
+	
+	self.SavePrio = save
+
 	return tab
 end
 
@@ -420,6 +526,17 @@ function Deeps:CreateEditControl(container, label, showOkButton)
 end
 
 
+function Deeps:CreateMultilineEditControl(container, label, showOkButton, numlines)
+  local item = AceGUI:Create("MultiLineEditBox")
+  item:SetFullWidth(true)
+  if label then item:SetLabel(label) end
+	item:DisableButton(not showOkButton)
+	item:SetNumLines(numlines or 3)
+  container:AddChild(item)
+  return item
+end
+
+
 function Deeps:CreateDropdownControl(container, label, onSelect)
 	local item = AceGUI:Create("Dropdown")
 	if label then item:SetLabel(label) end
@@ -445,8 +562,18 @@ function Deeps:CreateButton(container, text, width, onChange)
 	return item
 end
 
+
+function Deeps:CreateCheckBox(container, label)
+	local item = AceGUI:Create("CheckBox")
+	item:SetFullWidth(true)
+	item:SetLabel(label)
+	container:AddChild(item)
+	return item
+end
+
+
 function Deeps:CreateScroll(container, height, onScroll)
-	local item = AceGUI:Create("SimpleGroup")
+	local item = AceGUI:Create("InlineGroup")
 	item:SetFullWidth(true)
 	item:SetHeight(height or 100)
 	item:SetLayout("Fill")
@@ -461,18 +588,26 @@ function Deeps:CreateScroll(container, height, onScroll)
 end
 
 function Deeps:CreateTab(id)
-	local tab = AceGUI:Create("SimpleGroup")
+	local tab = AceGUI:Create(CONTAINER)
 	tab.TabId = id
 	tab:SetFullWidth(true)
+	tab:SetFullHeight(true)
 	tab:SetLayout("Flow")
 
 	function tab:Activate(container)
+		-- print("tab activate: " .. self.TabId)
 		container:AddChild(self)
-		self.frame:Show()
+		local frame = self.frame;
+		frame:ClearAllPoints()
+		frame:SetPoint("TOPLEFT")
+		frame:SetPoint("BOTTOMRIGHT")
+		frame:Show()
+		-- print("tab activate: " .. self.TabId .. " > done")
 		return self
 	end
 	
 	function tab:Deactivate()
+		-- print("tab deactivate: " .. self.TabId)
 		if self.parent then
 			local idx = 0
 			local children = self.parent.children
@@ -487,10 +622,32 @@ function Deeps:CreateTab(id)
 			self.parent = nil
 		end
 		self.frame:Hide()
+		-- print("tab deactivate: " .. self.TabId .. " > done")
 		return self
 	end
 	
 	return tab
 end
 
+function Deeps:dump(what)
+	local function info(item, shallow)
+		local t = type(item)
+		if t ~= "table" or shallow then return tostring(item) end
+		local ret = {}
+		local n = 1
+		for k, v in pairs(item) do
+			ret[n] = " " .. tostring(k) .. ": " .. info(v, true)
+			n = n + 1
+		end
+		return ret
+	end
 
+	local t = info(what)
+	if type(t) == "table" then
+		for i, v in ipairs(info(what)) do
+			print(v)
+		end
+	else
+		print(" >> " .. t)
+	end
+end
