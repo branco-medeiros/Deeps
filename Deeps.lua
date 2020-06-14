@@ -25,6 +25,7 @@ local function GetFrameWidth(frame)
   return frame.width or frame:GetWidth() or 0
 end
 
+
 local function FinishLayout(content, height)
 	if content.obj.LayoutFinished then 
 		content.obj:LayoutFinished(nil, height) 
@@ -227,13 +228,12 @@ function Deeps:SelectPriority(value)
 end
 
 function Deeps:InitializeUI()
-
- if not self.MainFrame then
+	if self.MainFrame == nil then
 		self:CreateMainFrame()
 		-- register the main frame to closwe with ESC
 		_G["Deeps.Frame"] = self.MainFrame
 		tinsert(UISpecialFrames, "Deeps.Frame")
- end
+	end
 end
 
 function Deeps:GetClassId(class, id)
@@ -336,6 +336,7 @@ function Deeps:CreateMainFrame()
 	end)
   self.TabGroup = tabs
 
+	--print("creating tabs...")
   -- tab panels 
 	self.Tabs = {
     prio = self:CreatePrioritiesTab(),
@@ -397,12 +398,12 @@ function Deeps:CreatePrioritiesTab()
 ]]
 
 
-	-- print("creating prio tab")
+	--print("creating prio tab")
 	local tab = self:CreateTab("prio")
 	tab:SetLayout("Flow")
 	--tab:SetUserData("table", {columns={.4, .6}, alignH="fill", alignV="fill", space=5})
 	--first col
-	-- print(">> first col")
+	--print(">> first col")
 	col = AceGUI:Create("InlineGroup") --CONTAINER)
 	col:SetLayout("HeaderMainFooter")
 	col:SetFullHeight(true)
@@ -411,15 +412,15 @@ function Deeps:CreatePrioritiesTab()
 	tab:AddChild(col)
 
   -- first-col > priority list label
-	-- print(">> first-col > priority list label")
+	--print(">> first-col > priority list label")
 	self:CreateLabel(col, "Priority List:")
 	
 	-- first-col > priorities scroll
-	-- print(">> first-col > priority scroll")
+	--print(">> first-col > priority scroll")
 	self.PriorityScroll = self:CreateScroll(col, 200)
 
 	-- first-col > priority edit buttons
-	-- print(">> first-col > priority edit buttons")
+	--print(">> first-col > priority edit buttons")
 	local temp = AceGUI:Create(CONTAINER)
 	temp:SetLayout("Flow")
 	temp:SetHeight(80)
@@ -431,61 +432,62 @@ function Deeps:CreatePrioritiesTab()
  
 
 	--second col
-	-- print(">> second-col")
-	col = AceGUI:Create("InlineGroup") --CONTAINER)
-	col:SetLayout("List")
+	--print(">> second-col")
+	col = AceGUI:Create(CONTAINER)
+	col:SetLayout("None")
 	col:SetFullHeight(true)
 	col:SetRelativeWidth(0.6)
 	col:SetAutoAdjustHeight(false)
 	tab:AddChild(col)
 
-	-- second-col > find spell 
-	-- print(">> second-col > find spell")
-	self.FindSpell = self:CreateEditControl(col, "Find", false)
+	local scroll, temp = self:CreateScroll(col)
+	self.PriorityEditScroll = scroll
+
+	temp:SetAutoAdjustHeight(false)
+	temp:ClearAllPoints()
+	temp:SetPoint("TOPLEFT", col.content)
+	temp:SetPoint("BOTTOMRIGHT", col.container, "BOTTOMRIGHT", 0, -80)
+
+	scroll:SetLayout("List")
+
+	self.FindSpell = self:CreateEditControl(scroll, "Find", false)
 	
 	
 	-- second-col > spell info (icon + spell name)
 	
 	-- second-col > description
-	-- print(">> second-col > description")
-	self.PrioDescription = self:CreateMultilineEditControl(col, "Description")
+	--print(">> second-col > description")
+	self.PrioDescription = self:CreateMultilineEditControl(scroll, "Description")
 	
 	-- second-col > flags
 	-- print(">> second-col > flags")
-	self.PrioShowKey = self:CreateCheckBox(col, "Show Key")
-	self.PrioNoTarget = self:CreateCheckBox(col, "No Target")
-	self.PrioNoRange = self:CreateCheckBox(col, "No Range")
-	self.PrioNotInstant = self:CreateCheckBox(col, "Not Instant")
-	self.PrioWhileMoving = self:CreateCheckBox(col, "While Moving")
+	self.PrioShowKey = self:CreateCheckBox(scroll, "Show Key")
+	self.PrioNoTarget = self:CreateCheckBox(scroll, "No Target")
+	self.PrioNoRange = self:CreateCheckBox(scroll, "No Range")
+	self.PrioNotInstant = self:CreateCheckBox(scroll, "Not Instant")
+	self.PrioWhileMoving = self:CreateCheckBox(scroll, "While Moving")
 
 	-- second-col > label for conditions
-	-- print(">> second-col > conditions")
-  self:CreateLabel(col, "Conditions")
+	--print(">> second-col > conditions")
+  self:CreateLabel(scroll, "Conditions")
 
 	-- second-col > condition list
-	local scrollbox = AceGUI:Create(CONTAINER)
-	scrollbox:SetLayout("Fill")
-	scrollbox:SetAutoAdjustHeight(false)
-	scrollbox:SetRelativeWidth(1)
-	scrollbox:SetHeight(100)
-	col:AddChild(scrollbox)
-  self.PriorityConditions = self:CreateScroll(scrollbox)
+	local condition = AceGUI:Create(CONTAINER)
+	condition:SetLayout("Fill")
+	condition:SetAutoAdjustHeight(false)
+	condition:SetRelativeWidth(1)
+	condition:SetHeight(100)
+	scroll:AddChild(condition)
+  self.PriorityConditions = self:CreateScroll(condition)
 	
 
 	-- second-col > save button
-	-- print(">> second-col > save btn")
+	--print(">> second-col > save btn")
 
-	-- usa a container for the button
-	local temp = AceGUI:Create(CONTAINER)
-	temp:SetLayout("None")
-	temp:SetAutoAdjustHeight(false)
-	temp:SetRelativeWidth(1)
-	temp:SetHeight(80)
-	col:AddChild(temp)
 
-	local save = self:CreateButton(temp, "Save")
+	local save = self:CreateButton(col, "Save")
 	save:ClearAllPoints()
-	save:SetPoint("RIGHT", temp.content, "RIGHT", -10, 0)
+	save:SetPoint("BOTTOMRIGHT", col.content, "RIGHT", -10, -20)
 	
 	self.SavePrio = save
 
@@ -501,6 +503,7 @@ end
 
 
 function Deeps:CreateConditionsTab()
+	--print("creating conditions tab")
   local tab = self:CreateTab("conditions")
   
 	self:CreateLabel(tab, "Conditions Tab")
@@ -509,6 +512,7 @@ end
 
 
 function Deeps:CreateSlotsTab()
+	--print("creating slots tab")
 	local tab = self:CreateTab("slots")
 	self:CreateLabel(tab, "Slots Tab")
 	return tab
@@ -584,7 +588,7 @@ function Deeps:CreateScroll(container, height, onScroll)
 	scroll:SetFullHeight(true)
 	item:AddChild(scroll)
 	
-	return scroll
+	return scroll, item
 end
 
 function Deeps:CreateTab(id)
@@ -599,9 +603,9 @@ function Deeps:CreateTab(id)
 		container:AddChild(self)
 		local frame = self.frame;
 		frame:ClearAllPoints()
+		frame:Show()
 		frame:SetPoint("TOPLEFT")
 		frame:SetPoint("BOTTOMRIGHT")
-		frame:Show()
 		-- print("tab activate: " .. self.TabId .. " > done")
 		return self
 	end
