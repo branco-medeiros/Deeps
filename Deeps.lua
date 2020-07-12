@@ -307,53 +307,33 @@ function Deeps:CreateMainFrame()
 	frame:SetCallback("OnClose", function(widget) widget:Hide() end)
   frame:SetLayout("None")
 	self.MainFrame = frame
-	frame.frame:Show()
 
-	local header = AceGUI:Create(CONTAINER)
-	header:SetLayout("Fill")
-	header:SetAutoAdjustHeight(false)
-	header:SetFullWidth(true)
-	header:SetHeight(40)
-	frame:AddChild(header)
-	SetPoints(header, "TOP", "LEFT", "RIGHT")
-	self.SpecLabel = self:CreateHeader(header)
+	local header = self:CreateHeader(frame)
+	self.SpecLabel = header 
 
-  
-  local tabs = AceGUI:Create(CONTAINER)
-	tabs:SetLayout("Fill")
-	tabs:SetAutoAdjustHeight(false)
-	tabs:SetHeight(30)
-	tabs:SetFullWidth(true)
-	frame:AddChild(tabs)
-	SetPoints(tabs, "LEFT", "RIGHT", {"TOP", header.frame, "BOTTOM"})
-	self.TabSelectors = self:CreateTabSelectors(tabs)
+  local tabs = self:CreateTabSelectors(frame)
+	self.TabSelectors = tabs
 
-  local main = AceGUI:Create(CONTAINER)
-	main:SetLayout("None")
-	main:SetAutoAdjustHeight(false)
-	main:SetHeight(500 - 3*30 - 2 * 25) -- full-height - 3 * widgets - 2 * margins 
-	main:SetFullWidth(true)
-	SetBorder(main, 16)
-	frame:AddChild(main)
-
-	SetPoints(main, "LEFT", "RIGHT", {"TOP", tabs.frame, "BOTTOM"})
+  local main = self:CreateTabsContainer(frame)
 	self.Main = main
 
 	self.SpellsTab = self:CreateSpellsTab(main)
 	self.SlotsTab = self:CreateSlotsTab(main)
 	self.ConditionsTab = self:CreateConditionsTab(main)
-	self.CuurrentTab = nil
-  -- tab panels 
-	self.Tabs = {
-    prio = self.SpellsTab,
-    slots = self.SlotsTab,
-    conditions = self.ConditionsTab
+
+	main.tabs = {
+		prio = self.SpellsTab, 
+		slots = self.SlotsTab,
+		conditions = self.ConditionsTab
 	}
-	
-	for k, c in pairs(self.Tabs) do
-		SetPoints(c, {"TOPLEFT", 10, -10}, {"BOTTOMRIGHT", -10, 10})
-		c.frame:Hide()
-	end
+
+	tabs:SetCallback("OnSelectTab", function(widget, id)
+    local prev = main.currentTab
+    local cur = main.tabs[id]
+		if prev then prev:Deactivate() end
+		if cur then cur:Activate(container) end
+    main.currentTab = cur
+	end)
 	
   local footer = AceGUI:Create(CONTAINER)
 	footer:SetLayout("None")
@@ -361,10 +341,21 @@ function Deeps:CreateMainFrame()
 	footer:SetHeight(30)
 	footer:SetFullWidth(true)
   frame:AddChild(footer)
-	SetPoints(footer, "LEFT", "RIGHT", "BOTTOM")
 	self.Footer = self:CreateFooter(footer)
 
-	main:SetPoint("BOTTOM", footer.frame, "TOP")
+
+frame.LayoutFunc = function(container, children)
+		header.frame:Show()
+		tabs.frame:Show()
+		main.frame:Show()
+		footer.frame:Show()
+		SetPoints(header, "TOP", "LEFT", "RIGHT")
+		SetPoints(tabs, "LEFT", "RIGHT", {"TOP", header.frame, "BOTTOM"})
+		SetPoints(main, "LEFT", "RIGHT", {"TOP", tabs.frame, "BOTTOM"})
+		SetPoints(footer, "LEFT", "RIGHT", "BOTTOM")
+		main:SetPoint("BOTTOM", footer.frame, "TOP")
+		FinishLayout(container)
+	end
 
 	return self
 end
@@ -402,11 +393,7 @@ function Deeps:CreateTabSelectors(container)
 	container:AddChild(tabs)
 
 	tabs.SelectTab = function(self, id)
-    local prev = this.CurrentTab
-    local cur = this.Tabs[id]
-		if prev then prev:Deactivate() end
-		if cur then cur:Activate(container) end
-    this.CurrentTab = cur
+		self:Fire("OnSelectTab", id)
 	end
 
 	local b1 = self:UICreateButton(tabs, "Spells", nil, function(btn) tabs:SelectTab("prio") end)
@@ -421,6 +408,34 @@ function Deeps:CreateTabSelectors(container)
 
 end
 
+
+-------------------------------------------------------------------------------
+function Deeps:CreateTabsContainer(container)
+  local main = AceGUI:Create(CONTAINER)
+	SetBorder(main, 16)
+
+	main.tabs = {}
+	main.AddTab = function(self, tab)
+		main.tabs[tab.TabId] = tab
+		main:AddChild(tab)
+		return self
+	end
+
+	main.LayoutFunc = function(container, children)
+		for k, tab in pairs(main.tabs) do
+			tab.frame:Show()
+			SetPoints(tab, {"TOPLEFT", 10, -10}, {"BOTTOMRIGHT", -10, 10})
+			if not tab.selected then tab.frame:Hide() end 
+		end
+		FinishLayout(container)
+	end
+
+	container:AddChild(main)
+	
+	return main
+
+
+end
 
 -------------------------------------------------------------------------------
 function Deeps:CreateTabSelectorsAceGUITabs(container)
@@ -600,13 +615,11 @@ end
 
 -------------------------------------------------------------------------------
 function Deeps:CreateSpellsTab(container)
-	local tab = self:UICreateTab("spells")
+	local tab = self:UICreateTab(container, "spells")
 	tab:SetLayout("None")
 
 	local select = self:UICreateListSelector(tab, "Spell Priorities")
 	SetPoints(select, "TOP", "LEFT", {"RIGHT", tab.frame, "CENTER"}, "BOTTOM")
-	
-	container:AddChild(tab)
 	return tab
 end
 
@@ -718,7 +731,7 @@ end
 
 
 -------------------------------------------------------------------------------
-function Deeps:UICreateTab(id)
+function Deeps:UICreateTab(container, id)
 	local tab = AceGUI:Create(CONTAINER)
 	tab.TabId = id
 	tab:SetFullWidth(true)
@@ -726,18 +739,18 @@ function Deeps:UICreateTab(id)
 	tab:SetLayout("Flow")
 
 	function tab:Activate(container)
-		local frame = self.frame;
-		frame:ClearAllPoints()
 		frame:Show()
-		frame:SetPoint("TOPLEFT")
-		frame:SetPoint("BOTTOMRIGHT")
+		self.selected = true
 		return self
 	end
 
 	function tab:Deactivate()
 		self.frame:Hide()
+		self.selected = false
 		return self
 	end
+
+	if container.AddTab then container:AddTab(tab) else containder:AddChild(tab) end
 	
 	return tab
 end
