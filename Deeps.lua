@@ -9,9 +9,13 @@ local FONT = "Fonts\\FRIZQT__.TTF"
 local CONTAINER = "SimpleGroup" 
 -- local CONTAINER = "InlineGroup" 
 
---local DEFAULT_BDR_TEX = 'Interface\\DialogFrame\\UI-DialogBox-Background-Dark'
+local DEFAULT_BDR_TEX_2 = 'Interface\\DialogFrame\\UI-DialogBox-Background-Dark'
 local DEFAULT_BDR_TEX = "Interface\\Tooltips\\UI-Tooltip-Border"
+local NO_SPELL_ICON = "Interface\\ICONS\\INV_Misc_QuestionMark"
+local OK_ICON = ""
+local CANCEL_ICON = ""
 
+local DEEPS_INPUT_DLG = "DEEPS_INPUT_DLG"
 
 local Deeps = LibStub("AceAddon-3.0"):NewAddon(
 	DEEPS, 
@@ -31,7 +35,7 @@ local function GetFrameWidth(frame)
 end
 
 local function DoLayout(child)
-	--if child.DoLayout then child:DoLayout() end
+	if child.DoLayout then child:DoLayout() end
 end
 
 local function FinishLayout(content, height)
@@ -61,13 +65,13 @@ local function SetMinSize(frame, width, height)
 	if frame.SetMinResize then frame:SetMinResize(width, height) end
 end
 
-local function SetBorder(frame, size, r, g, b)
+local function SetBorder(frame, size, isBlack)
   if frame.frame and not frame.SetBackdrop then frame = frame.frame end
   if not size or size == 0 then
     frame:SetBackdrop({edgeFile = nil, edgeSize = 0})
   else
-    frame:SetBackdrop({edgeFile=DEFAULT_BDR_TEX, edgeSize=size})
-    if r then frame:SetBackdropBorderColor(r, g or r, b or r) end
+    frame:SetBackdrop({edgeFile=(isBlack and DEFAULT_BDR_TEX_2) or DEFAULT_BDR_TEX, edgeSize=size})
+    --if r then frame:SetBackdropBorderColor(r, g or r, b or r) end
   end --if
 end 
 
@@ -304,15 +308,28 @@ function Deeps:CreateMainFrame()
 	frame:SetWidth(600)
 	frame:SetHeight(500)
 	SetMinSize(frame.frame, 600, 500);
-	frame:SetCallback("OnClose", function(widget) widget:Hide() end)
+	frame:SetCallback("OnClose", function(widget) 
+		StaticPopup_Hide(DEEPS_INPUT_DLG)
+		widget:Hide() 
+	end)
   frame:SetLayout("None")
 	self.MainFrame = frame
 
-	local header = self:CreateHeader(frame)
-	self.SpecLabel = header 
+	local header = AceGUI:Create(CONTAINER)
+	header:SetLayout("Fill")
+	header:SetFullWidth(true)
+	header:SetAutoAdjustHeight(false)
+	header:SetHeight(20)
+	frame:AddChild(header)
+	self.SpecLabel = self:CreateHeader(header) 
 
-  local tabs = self:CreateTabSelectors(frame)
-	self.TabSelectors = tabs
+	local tabs = AceGUI:Create(CONTAINER)
+	tabs:SetLayout("Fill")
+	tabs:SetFullWidth(true)
+	tabs:SetAutoAdjustHeight(false)
+	tabs:SetHeight(40)
+	frame:AddChild(tabs)
+	self.TabSelectors = self:CreateTabSelectors(tabs)
 
   local main = self:CreateTabsContainer(frame)
 	self.Main = main
@@ -327,7 +344,8 @@ function Deeps:CreateMainFrame()
 		conditions = self.ConditionsTab
 	}
 
-	tabs:SetCallback("OnSelectTab", function(widget, id)
+	self.TabSelectors:SetCallback("OnSelectTab", function(widget, name, id)
+		--print("OnSelectTab - widget: ", widget, ", id: ", id)
     local prev = main.currentTab
     local cur = main.tabs[id]
 		if prev then prev:Deactivate() end
@@ -343,19 +361,11 @@ function Deeps:CreateMainFrame()
   frame:AddChild(footer)
 	self.Footer = self:CreateFooter(footer)
 
-
-frame.LayoutFunc = function(container, children)
-		header.frame:Show()
-		tabs.frame:Show()
-		main.frame:Show()
-		footer.frame:Show()
-		SetPoints(header, "TOP", "LEFT", "RIGHT")
-		SetPoints(tabs, "LEFT", "RIGHT", {"TOP", header.frame, "BOTTOM"})
-		SetPoints(main, "LEFT", "RIGHT", {"TOP", tabs.frame, "BOTTOM"})
-		SetPoints(footer, "LEFT", "RIGHT", "BOTTOM")
-		main:SetPoint("BOTTOM", footer.frame, "TOP")
-		FinishLayout(container)
-	end
+	SetPoints(header, "TOP", "LEFT", "RIGHT")
+	SetPoints(tabs, "LEFT", "RIGHT", {"TOP", header.frame, "BOTTOM"})
+	SetPoints(main, "LEFT", "RIGHT", {"TOP", tabs.frame, "BOTTOM"})
+	SetPoints(footer, "LEFT", "RIGHT", "BOTTOM")
+	main:SetPoint("BOTTOM", footer.frame, "TOP")
 
 	return self
 end
@@ -365,15 +375,15 @@ end
 function Deeps:CreateHeader(container, height)
 	-- spec label
 	local this = self
-  local label = AceGUI:Create("Label")
-	label:SetFullWidth(true)
+	local label = AceGUI:Create("Label")
 	label:SetHeight(height or 40)
 	label:SetFont(FONT, 16, "OUTLINE")
 	label:SetColor(252/255, 232/255, 3/255)
 	label:SetJustifyH("CENTER")
 	label:SetJustifyV("CENTER")
 	container:AddChild(label)
-	
+	label.frame.width = nil
+
 	label.SetSpecName = function(self, text)
 		if not text then text = this.SpecText end
 		self:SetText("Priority Rotation for " .. text)
@@ -411,30 +421,21 @@ end
 
 -------------------------------------------------------------------------------
 function Deeps:CreateTabsContainer(container)
-  local main = AceGUI:Create(CONTAINER)
+	local main = AceGUI:Create(CONTAINER)
+	main:SetLayout("None")
 	SetBorder(main, 16)
 
 	main.tabs = {}
 	main.AddTab = function(self, tab)
-		main.tabs[tab.TabId] = tab
-		main:AddChild(tab)
+		self.tabs[tab.TabId] = tab
+		self:AddChild(tab)
+		SetPoints(tab, {"TOPLEFT", 10, -10}, {"BOTTOMRIGHT", -10, 10})
+		if not tab.selected then tab.frame:Hide() end 
 		return self
 	end
 
-	main.LayoutFunc = function(container, children)
-		for k, tab in pairs(main.tabs) do
-			tab.frame:Show()
-			SetPoints(tab, {"TOPLEFT", 10, -10}, {"BOTTOMRIGHT", -10, 10})
-			if not tab.selected then tab.frame:Hide() end 
-		end
-		FinishLayout(container)
-	end
-
 	container:AddChild(main)
-	
 	return main
-
-
 end
 
 -------------------------------------------------------------------------------
@@ -620,6 +621,15 @@ function Deeps:CreateSpellsTab(container)
 
 	local select = self:UICreateListSelector(tab, "Spell Priorities")
 	SetPoints(select, "TOP", "LEFT", {"RIGHT", tab.frame, "CENTER"}, "BOTTOM")
+	tab.SpellList = select
+
+	local box = AceGUI:Create(CONTAINER)
+	tab:AddChild(box)
+	box:SetLayout("Fill")
+	box:SetHeight(40)
+	box:SetAutoAdjustHeight(false)
+	SetPoints(box, {"LEFT", tab.frame, "CENTER", 10, 0}, "TOP", "RIGHT")
+	tab.SpellIcon = self:UICreateSpellIcon(box)
 	return tab
 end
 
@@ -627,9 +637,8 @@ end
 -------------------------------------------------------------------------------
 function Deeps:CreateConditionsTab(container)
 	--print("creating conditions tab")
-  local tab = self:UICreateTab("conditions") 
+  local tab = self:UICreateTab(container, "conditions") 
 	self:UICreateLabel(tab, "Conditions Tab")
-	container:AddChild(tab)
 	return tab
 end
 
@@ -637,9 +646,8 @@ end
 -------------------------------------------------------------------------------
 function Deeps:CreateSlotsTab(container)
 	--print("creating slots tab")
-	local tab = self:UICreateTab("slots")
+	local tab = self:UICreateTab(container, "slots")
 	self:UICreateLabel(tab, "Slots Tab")
-	container:AddChild(tab)
 	return tab
 end
 
@@ -734,12 +742,10 @@ end
 function Deeps:UICreateTab(container, id)
 	local tab = AceGUI:Create(CONTAINER)
 	tab.TabId = id
-	tab:SetFullWidth(true)
-	tab:SetFullHeight(true)
 	tab:SetLayout("Flow")
 
-	function tab:Activate(container)
-		frame:Show()
+	function tab:Activate()
+		self.frame:Show()
 		self.selected = true
 		return self
 	end
@@ -750,7 +756,7 @@ function Deeps:UICreateTab(container, id)
 		return self
 	end
 
-	if container.AddTab then container:AddTab(tab) else containder:AddChild(tab) end
+	if container.AddTab then container:AddTab(tab) else container:AddChild(tab) end
 	
 	return tab
 end
@@ -853,15 +859,139 @@ function Deeps:UICreateListSelector(container, label)
 			{"BOTTOM", main.frame},
 			{"LEFT", prev.frame, (prev == main and "LEFT") or "RIGHT"}
 		)
-		--btn:ClearAllPoints()
-		--btn:SetPoint("BOTTOM", main.frame)
-		--btn:SetPoint("LEFT", (prev and prev.frame) or main.frame, (prev and "RIGHT") or "LEFT")
 		prev = btn
 	end
 	scroll:SetPoint("BOTTOM", upbtn.frame, "TOP")
 
 	container:AddChild(main)
 	return main
+end
+
+-------------------------------------------------------------------------------
+function Deeps:UICreateSpellIcon(container, id)
+	local this = self
+	local box = AceGUI:Create(CONTAINER)
+	box:SetLayout("None")
+	box:SetHeight(40)
+
+
+	local icon = AceGUI:Create("InteractiveLabel")
+	icon:SetImageSize(32, 32)
+	box:AddChild(icon)
+	box.icon = icon
+
+	-- adjusts item positions
+	SetPoints(icon.image, "TOPLEFT")
+	SetPoints(icon.label, "TOP", "BOTTOMRIGHT", {"LEFT", icon.image, "RIGHT", 4, 0})
+	icon.label:SetJustifyV("CENTER")
+
+	icon:SetCallback("OnClick", function() 
+		box.edit:SetText(box.SpellId)
+		box:SetInputMode(true) 
+	end)
+
+	local edit = self:UICreateTextBox(box)
+	box.edit = edit
+
+	local ok = AceGUI:Create("Icon")
+	ok:SetImage(OK_ICON)
+	ok:SetImageSize(24, 24)
+	ok:SetWidth(24)
+	ok:SetHeight(24)
+	ok:SetCallback("OnClick", function()
+		local v=box.edit:GetText()
+		if v then box:SetSpell(v) end
+		box:SetInputMode(false)
+	end)
+	box:AddChild(ok)
+	box.ok = ok
+
+	local cancel = AceGUI:Create("Icon")
+	cancel:SetImage(CANCEL_ICON)
+	cancel:SetImageSize(24, 24)
+	cancel:SetWidth(24)
+	cancel:SetHeight(24)
+	cancel:SetCallback("OnClick", function()
+		box:SetInputMode(false)
+	end)
+	box:AddChild(cancel)
+	box.cancel = cancel
+
+	SetPoints(cancel, "TOP", "RIGHT")
+	SetPoints(ok, "TOP", {"RIGHT", cancel.frame, "LEFT"})
+	SetPoints(edit, "TOPLEFT", {"RIGHT", ok.frame, "LEFT"})
+	SetPoints(icon, "TOPLEFT", "BOTTOMRIGHT")
+
+	box.SetInputMode = function(self, value)
+		if value then
+			self.icon.frame:Hide()
+			self.edit.frame:Show()
+			self.ok.frame:Show()
+			self.cancel.frame:Show()
+		else
+			self.icon.frame:Show()
+			self.edit.frame:Hide()
+			self.ok.frame:Hide()
+			self.cancel.frame:Hide()
+		end
+	end
+
+	box.SetSpell = function(self, id)
+		local name = this.SpellName
+		local icon = this.SpellIcon
+		if id then
+			if type("id") == "string" then
+				local num = tonumber(id)
+				if num then id = num end
+			end
+			local ok, err = pcall(function()
+				name, _, icon, _, _, _, id = GetSpellInfo(id)
+			end)
+			if not ok then 
+				this:Print("invalid spell id")
+			else
+				this.SpellId = id
+				this.SpellName = name
+				this.SpellIcon = icon
+			end
+		end
+		self.icon:SetText(name or '(No Spell)')
+		self.icon:SetImage(icon or NO_SPELL_ICON)
+	end
+
+	icon:SetCallback("OnEnter", function(self)
+		local info, _, _, id = GetCursorInfo()
+		if info == "spell" then box:SetSpell(id) end
+	end)
+
+	container:AddChild(box)
+	box:SetInputMode()
+	box:SetSpell()
+
+	return box
+
+end
+
+function Deeps:GetUserInput(question, text, resultFn)
+	StaticPopupDialogs[DEEPS_INPUT_DLG] = {
+		text = question,
+		button1 = "Ok",
+		button2 = "Cancel",
+		OnShow = function(self, data)
+			self.editBox:SetText(text or '')
+		end,
+		OnAccept = function(self, data)
+			local v = self.editBox:GetText()
+			print("onAccept: ", v)
+			resultFn(v)
+		end,
+		hasEditBox = true,
+		timeout = 0,
+  	whileDead = true,
+		HideOnEscape = true,
+		EnterClicksFirstButton = true
+	}
+	StaticPopup_Show (DEEPS_INPUT_DLG)
 end
 	
 
