@@ -1,0 +1,675 @@
+<html>
+<head>
+  <title>AceGUI widgets</title>
+  
+  <style>
+    body {
+      padding-right: 10rem;
+    }
+    
+    .snip, .api {
+      padding:0.5rem;
+      padding-left:1rem;
+      margin: 1em 0.5rem;
+      border:1px solid #ccc;
+      border-radius: 6px;
+    }
+    
+    .api {
+      padding: 0;
+      font-size: 90%;
+    }
+    
+    .api .snip {
+      border: none;
+      margin: 0;
+      padding-left:2rem;
+    }
+    
+    .api .snip {
+      max-height: 1.5rem;
+      overflow:hidden;
+    }
+    
+    .api .snip:first-child {
+      max-height: 1rem;
+    }
+    
+    .api .snip.open {
+      max-height: fit-content;
+      overflow: auto;
+    }
+    
+    .snip h3 {
+      margin:0 0 0.5rem -0.5rem;
+      padding:0;
+      padding-bottom: 0.5rem;
+      border-bottom:1px solid #ddd;
+    }
+    
+    .api .snip h3 {
+      margin-left: -1.5rem;
+      cursor: pointer;
+    }
+    
+    .api .snip:not(:first-child) h3{
+      padding-top:0.5rem;
+      border-top: 2px solid #ddd;
+    }
+    
+    .side-bar {
+      position: fixed;
+      right:0;
+      top:0;
+      padding: 1rem;
+      margin: 1rem;
+      border:1px solid #aaa;
+      border-radius: 6px;
+      background-color: white;
+    }
+    
+    .links {
+      margin:0
+      padding:0;
+      list-style-type: none;
+      font-size: 0.8rem;
+      margin-block-start:0;
+      margin-block-end:0;
+      padding-inline-start:0;
+    }
+    
+    
+  </style>
+  
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  
+  <script>
+    $(function(){
+      $(".api .snip h3").on("click", function(){ $(this).parent().toggleClass("open") })
+    })
+  </script>
+</head>
+
+<body>
+  <div class="side-bar">
+    <ul class="links">
+      <li><a href="#">Top</a></li>
+      <li><br/><b>Widgets</b><br/></li>
+      <li><a href="#widgets">Base widget API</a></li>
+      <li><a href="#Button">Button</a></li>
+      <li><a href="#CheckBox">CheckBox</a></li>
+      <li><a href="#ColorPicker">ColorPicker</a></li>
+      <li><a href="#Dropdown">Dropdown</a></li>
+      <li><a href="#EditBox">EditBox</a></li>
+      <li><a href="#Heading">Heading</a></li>
+      <li><a href="#Icon">Icon</a></li>
+      <li><a href="#InteractiveLabel">InteractiveLabel</a></li>
+      <li><a href="#Keybinding">Keybinding</a></li>
+      <li><a href="#Label">Label</a></li>
+      <li><a href="#MultiLineEditBox">MultiLineEditBox</a></li>
+      <li><a href="#Slider">Slider</a></li>
+      <li><br/><b>Containeres</b><br/></li>
+      <li><a href="#containers">Base containers API</a></li>
+      <li><a href="#DropdownGroup">DropdownGroup</a></li>
+      <li><a href="#Frame">Frame</a></li>
+      <li><a href="#InlineGroup">InlineGroup</a></li>
+      <li><a href="#ScrollFrame">ScrollFrame</a></li>
+      <li><a href="#SimpleGroup">SimpleGroup</a></li>
+      <li><a href="#TabGroup">TabGroup</a></li>
+      <li><a href="#TreeGroup">TreeGroup</a></li>
+    </ul>
+  </div>
+  <div class="content">
+    <h2>AceGUI widgets</h2>
+    <p>This is a list of all commonly used and public APIs all widgets (and containers) share. There are additional APIs that are reserved for internal use by the Layout functions or the Widgets themself, and are not documented here. </p>
+    
+    <a name="widgets"><h2>Base WIdget API</h2></a>
+
+    <div class="api">
+      <div class="snip">
+        <h3><em>widget</em>:SetCallback(name, func)</h3>
+        <p>Set the callback function of a specific callback. Only one function can be assigned to every callback.</p>
+        <p><strong>Usage</strong></p>
+        <div><div><pre><span>local</span> <span>frame</span> <span>=</span> <span>AceGUI</span><span>:</span><span>Create</span><span>(</span><span>"</span><span>Frame"</span><span>)</span>
+        <span>frame</span><span>:</span><span>SetCallback</span><span>(</span><span>"</span><span>OnClose"</span><span>,</span> <span>function</span><span>(</span><span>widget</span><span>)</span> <span>AceGUI</span><span>:</span><span>Release</span><span>(</span><span>widget</span><span>)</span> <span>end</span><span>)</span>
+        </pre></div>
+        </div><p>Every callback is called with the widget as the first argument, and the name of the callback as the second.
+        <br>Any arguments specific to the callback type follow after these two arguments.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:SetWidth(width)</h3>
+        <p>Sets the absolute width of the widget.<br>
+        Calling this function will try to call <code>:OnWidthSet</code> on the widget, if defined.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:SetRelativeWidth(width)</h3>
+        <p>Set the width of the widget relative to its container.<br>
+        Any values between 0.0 and 1.0 are accepted, in percent.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:SetHeight(width)</h3>
+        <p>Sets the absolute height of the widget.<br>
+        Calling this function will try to call <code>:OnHeightSet</code> on the widget, if defined.</p>
+        <p><strong>Note:</strong> Most widgets have a fixed pre-defined height, and changing their height is not recommended.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:IsVisible()</h3>
+        <p>Return whether or not an object is actually visible on-screen.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:IsShown()</h3>
+        <p>Determine if this object is shown (would be visible if its parent was visible). </p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:Release()</h3>
+        <p>Release the widget back into the widget pool.</p>
+        <p>This is the equivalent to <code>AceGUI:Release(widget)</code></p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:SetPoint(...)</h3>
+        <p>Set an attachment point of this widget.<br>
+        This function directly forwards to the base-frames <code>:SetPoint</code></p>
+      </div>
+
+      <div class="snip">
+      <h3><em>widget</em>:ClearAllPoints()</h3>
+        <p>Clear all attachment points of this widget.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:GetNumPoints()</h3>
+        <p>Get the number of anchor points for this widget.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:GetPoint(...)</h3>
+        <p>Get details for an anchor point for this widget.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:GetUserDataTable()</h3>
+        <p>Return the internal user data table from this widget.</p>
+        <p>The User Data can be used to store information about this widget, and its functionality. Any User Data is wiped when the widget is released.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:SetUserData(key, value)</h3>
+        <p>Set a key in the user data table.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:GetUserData(key)</h3>
+        <p>Get the value of a specific user data key.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:SetFullHeight(isFull)</h3>
+        <p>Set if the widget should use the full available height of its container.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:IsFullHeight()</h3>
+        <p>Return if the widget is using the full height of its container.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:SetFullWidth(isFull)</h3>
+        <p>Set if the widget should use the full available width of its container.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>widget</em>:IsFullWidth()</h3>
+        <p>Return if the widget is using the full width of its container.</p>
+      </div>
+    </div>
+    
+    <p><br></p>
+    <h2>Widgets</h2>
+    <p><br></p>
+
+    <div class="snip">
+      <h3><a name="Button">Button</a></h3>
+      <p>This widget is a default click-able Button.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetText</strong>(text) - Set the Text to be displayed on the button.
+      </li><li><strong>SetDisabled</strong>(flag) - Disable the widget.
+      </li></ul>
+      <h4>Callbacks</h4>
+      <ul><li><strong>OnClick</strong>() - Fires when the button is clicked.
+      </li><li><strong>OnEnter</strong>() - Fires when the cursor enters the widget.
+      </li><li><strong>OnLeave</strong>() - Fires when the cursor leaves the widget.
+      </li></ul>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="CheckBox">CheckBox</a></h3>
+      <p>A checkbox, optionally tri-state.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetValue</strong>(flag) - Set the state of the checkbox
+      </li><li><strong>GetValue</strong>() - Get the state of the checkbox
+      </li><li><strong>SetType</strong>(type) - Set the type of the checkbox("radio" or "checkbox")
+      </li><li><strong>ToggleChecked</strong>() - Toggle the value
+      </li><li><strong>SetLabel</strong>(text) - Set the text for the label
+      </li><li><strong>SetTriState</strong>(state) - Enable/Disable the tri-state behaviour.
+      </li><li><strong>SetDisabled</strong>(flag) - Disable the widget.
+      </li><li><strong>SetDescription</strong>(description) - Set the description of the widget, shown as small text below it.
+      </li><li><strong>SetImage</strong>(path, ...) - Set the image of the checkbox. Optionally you can pass parameters to be passed to SetTexCoords (4 or 8 argument version)
+      </li></ul>
+      <h4>Callbacks</h4>
+      <ul><li><strong>OnValueChanged</strong>(value) - Fires when the state of the checkbox changes.
+      </li><li><strong>OnEnter</strong>() - Fires when the cursor enters the widget.
+      </li><li><strong>OnLeave</strong>() - Fires when the cursor leaves the widget.
+      </li></ul>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="ColorPicker">ColorPicker</a></h3>
+      <p>A small color-display widget which opens the ColorPicker frame when clicked.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetColor</strong>(r, g, b, a) - Set the color
+      </li><li><strong>SetLabel</strong>(text) - Set the text for the label
+      </li><li><strong>SetHasAlpha</strong>(flag) - Set if the color picker has an alpha value
+      </li><li><strong>SetDisabled</strong>(flag) - Disable the widget.
+      </li></ul>
+      <h4>Callbacks</h4>
+      <ul><li><strong>OnValueChanged</strong>(r, g, b, a) - Fires when the color value is changed, but the color picker is still open.
+      </li><li><strong>OnValueConfirmed</strong>(r, g, b, a) - Fires when the color picker is closed.
+      </li><li><strong>OnEnter</strong>() - Fires when the cursor enters the widget.
+      </li><li><strong>OnLeave</strong>() - Fires when the cursor leaves the widget.
+      </li></ul>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="Dropdown">Dropdown</a></h3>
+      <p>A select-box style box with a dropdown pullout.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetValue</strong>(key) - Set the value to an item in the List.
+      </li><li><strong>SetList</strong>(table [, order]) - Set the list of values for the dropdown (key =&gt; value pairs). The order is a optional second table, that contains the order in which the entrys should be displayed (Array table with the data tables keys as values). Behaviour is undefined if you provide a order table that contains not the exact same keys as in the data table.
+      </li><li><strong>SetText</strong>(text) - Set the text displayed in the box.
+      </li><li><strong>SetLabel</strong>(text) - Set the text for the label.
+      </li><li><strong>AddItem</strong>(key, value) - Add an item to the list.
+      </li><li><strong>SetMultiselect</strong>(flag) - Toggle multi-selecting.
+      </li><li><strong>GetMultiselect</strong>() - Query the multi-select flag.
+      </li><li><strong>SetItemValue</strong>(key, value) - Set the value of a item in the list.
+      </li><li><strong>SetItemDisabled</strong>(key, flag) - Disable one item in the list.
+      </li><li><strong>SetDisabled</strong>(flag) - Disable the widget.
+      </li></ul>
+      <h4>Callbacks</h4>
+      <ul><li><strong>OnValueChanged</strong>(key [,checked]) - Fires when the selection changes. The second argument is send for multi-select dropdowns to indicate a change in one option.
+      </li><li><strong>OnEnter</strong>() - Fires when the cursor enters the widget.
+      </li><li><strong>OnLeave</strong>() - Fires when the cursor leaves the widget.
+      </li></ul>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="EditBox">EditBox</a></h3>
+      <p>A simple text input box.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetText</strong>(text) - Set the text in the edit box.
+      </li><li><strong>GetText</strong>() - Get the text in the edit box.
+      </li><li><strong>SetLabel</strong>(text) - Set the text for the label.
+      </li><li><strong>SetDisabled</strong>(flag) - Disable the widget.
+      </li><li><strong>DisableButton</strong>(flag) - True to disable the "Okay" button, false to enable it again.
+      </li><li><strong>SetMaxLetters</strong>(num) - Set the maximum number of letters that can be entered (0 for unlimited).
+      </li><li><strong>SetFocus</strong>() - Set the focus to the editbox.
+      </li><li><strong>HighlightText</strong>(start, end) - Highlight the text in the editbox (see Blizzard EditBox Widget documentation for details)
+      </li></ul>
+      <h4>Callbacks</h4>
+      <ul><li><strong>OnTextChanged</strong>(text) - Fires on every text change.
+      </li><li><strong>OnEnterPressed</strong>(text) - Fires when the new text was confirmed and should be saved.
+      </li><li><strong>OnEnter</strong>() - Fires when the cursor enters the widget.
+      </li><li><strong>OnLeave</strong>() - Fires when the cursor leaves the widget.
+      </li></ul>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="Heading">Heading</a></h3>
+      <p>A horizontal line with a short label in the middle.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetText</strong>(text) - Set the text to be displayed in the heading.
+      </li></ul>
+      <h4>Callbacks</h4>
+      <p><em>none</em></p>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="Icon">Icon</a></h3>
+      <p>A click-able icon widget.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetImage</strong>(image, ...) - Set the image to be shown. Additionally to the path, any extra arguments will be directly forwarded to :SetTexCoord.
+      </li><li><strong>SetImageSize</strong>(width, height) - Set the size of the image.
+      </li><li><strong>SetLabel</strong>(text) - Set the text for the label.
+      </li></ul>
+      <h4>Callbacks</h4>
+      <ul><li><strong>OnClick</strong>(button) - Fires when the icon is clicked.
+      </li><li><strong>OnEnter</strong>() - Fires when the cursor enters the widget.
+      </li><li><strong>OnLeave</strong>() - Fires when the cursor leaves the widget.
+      </li></ul>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="InteractiveLabel">InteractiveLabel</a></h3>
+      <p>A basic label which reacts to mouse interaction, optionally with an icon in front.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetText</strong>(text) - Set the text.
+      </li><li><strong>SetColor</strong>(r, g, b) - Set the color of the text.
+      </li><li><strong>SetFont</strong>(font, height, flags) - Set the font of the text.
+      </li><li><strong>SetFontObject</strong>(font) - Set the font using a pre-defined font-object.
+      </li><li><strong>SetImage</strong>(image, ...) - Set the image to be shown. Additionally to the path, any extra arguments will be directly forwarded to :SetTexCoord.
+      </li><li><strong>SetImageSize</strong>(width, height) - Set the size of the image.
+      </li><li><strong>SetHighlight</strong>(...) - Set the highlight texture (either path to a texture, or RGBA values for a solid color)
+      </li><li><strong>SetHighlightTexCoord</strong>(...) - Set the tex coords for the highlight texture.
+      </li></ul>
+      <h4>Callbacks</h4>
+      <ul><li><strong>OnClick</strong>(button) - Fires when the label is clicked.
+      </li><li><strong>OnEnter</strong>() - Fires when the cursor enters the widget.
+      </li><li><strong>OnLeave</strong>() - Fires when the cursor leaves the widget.
+      </li></ul>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="Keybinding">Keybinding</a></h3>
+      <p>A widget to control binding of keys.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetKey</strong>(key) - Set the current key.
+      </li><li><strong>GetKey</strong>() - Set the current key.
+      </li><li><strong>SetLabel</strong>(text) - Set the text of the label.
+      </li><li><strong>SetDisabled</strong>(flag) - Disable the widget.
+      </li></ul>
+      <h4>Callbacks</h4>
+      <ul><li><strong>OnKeyChanged</strong>(key) - Fires when the key was changed.
+      </li><li><strong>OnEnter</strong>() - Fires when the cursor enters the widget.
+      </li><li><strong>OnLeave</strong>() - Fires when the cursor leaves the widget.
+      </li></ul>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="Label">Label</a></h3>
+      <p>A plain text, optionally with an icon in front.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetText</strong>(text) - Set the text.
+      </li><li><strong>SetColor</strong>(r, g, b) - Set the color of the text.
+      </li><li><strong>SetFont</strong>(font, height, flags) - Set the font of the text.
+      </li><li><strong>SetFontObject</strong>(font) - Set the font using a pre-defined font-object.
+      </li><li><strong>SetImage</strong>(image, ...) - Set the image to be shown. Additionally to the path, any extra arguments will be directly forwarded to :SetTexCoord.
+      </li><li><strong>SetImageSize</strong>(width, height) - Set the size of the image.
+      </li></ul>
+      <h4>Callbacks</h4>
+      <p><em>none</em></p>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="MultiLineEditBox">MultiLineEditBox</a></h3>
+      <p>A multiline editbox for text input.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetText</strong>(text) - Set the text in the edit box.
+      </li><li><strong>GetText</strong>() - Get the text in the edit box.
+      </li><li><strong>SetLabel</strong>(text) - Set the text for the label.
+      </li><li><strong>SetNumLines</strong>(num) - Set the number of lines to be displayed in the editbox.
+      </li><li><strong>SetDisabled</strong>(flag) - Disable the widget.
+      </li><li><strong>SetMaxLetters</strong>(num) - Set the maximum number of letters that can be entered (0 for unlimited).
+      </li><li><strong>DisableButton</strong>(flag) - Disable the "Okay" Button
+      </li><li><strong>SetFocus</strong>() - Set the focus to the editbox.
+      </li><li><strong>HighlightText</strong>(start, end) - Highlight the text in the editbox (see Blizzard EditBox Widget documentation for details)
+      </li></ul>
+      <h4>Callbacks</h4>
+      <ul><li><strong>OnTextChanged</strong>(text) - Fires on every text change.
+      </li><li><strong>OnEnterPressed</strong>(text) - Fires when the new text was confirmed and should be saved.
+      </li><li><strong>OnEnter</strong>() - Fires when the cursor enters the widget.
+      </li><li><strong>OnLeave</strong>() - Fires when the cursor leaves the widget.
+      </li></ul>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="Slider">Slider</a></h3>
+      <p>A slider. Like, for ranges of values.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetValue</strong>(value) - Set the current value of the slider.
+      </li><li><strong>GetValue</strong>() - Get the current value of the slider.
+      </li><li><strong>SetSliderValues</strong>(min, max, step) - Set the parameters of the slider. Minimum, maximum and the step value.
+      </li><li><strong>SetIsPercent</strong>(flag) - Set if the values are percentage values.
+      </li><li><strong>SetLabel</strong>(text) - Set the text for the label.
+      </li><li><strong>SetDisabled</strong>(flag) - Disable the widget.
+      </li></ul>
+      <h4>Callbacks</h4>
+      <ul><li><strong>OnValueChanged</strong>(value) - Fires when the value changed. (Fires *alot* when moving the slider with the mouse)
+      </li><li><strong>OnMouseUp</strong>(value) - Fires when the mouse is removed from the slider, and the movement stops at the final position.
+      </li><li><strong>OnEnter</strong>() - Fires when the cursor enters the widget.
+      </li><li><strong>OnLeave</strong>() - Fires when the cursor leaves the widget.
+      </li></ul>
+    </div>
+
+    <p><br></p>
+    <h2>COntainers</h2>
+    <p>In addition to all Base Widget APIs, all Containers share another set of common APIs to manage the Layout and their child widgets.</p>
+    
+    <h3><a name="containers">Base Container APIs</a></h3>
+
+    <div class="api">
+      <div class="snip">
+        <h3><em>container</em>:AddChild(widget [, beforeWidget])</h3>
+        <p>Add a new widget to the list of the containers children.<br>
+        If <code>beforeWidget</code> is specified, the new widget will be inserted before this widget in the list, otherwise at the end.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>container</em>:SetLayout(layout)</h3>
+        <p>Set the Layout this container should use when managing its child frames.<br>
+        Currently implemented Layouts in AceGUI-3.0:<br>
+        "Flow" - A row based flow layout<br>
+        "List" - A simple stacking layout<br>
+        "Fill" - Fill the whole container with the first widget (used by Groups)<br></p>
+      </div>
+
+      <div class="snip">
+        <h3><em>container</em>:SetAutoAdjustHeight(flag)</h3>
+        <p>Enable/Disable the automatic height adjustment of containers.<br>
+        If this is on (default), the container will resize vertically to fit all widgets in it.<br></p>
+        <p>This setting has no effect if a container is added in a "Fill" Layout, or if its set to use all available space (<code>SetFullHeight</code>).</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>container</em>:ReleaseChildren()</h3>
+        <p>Release all child frames of this container.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>container</em>:DoLayout()</h3>
+        <p>Cause the container to re-layout all his child frames.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>container</em>:PauseLayout()</h3>
+        <p>Suspend all layout operations until resumed.</p>
+      </div>
+
+      <div class="snip">
+        <h3><em>container</em>:ResumeLayout()</h3>
+        <p>Resume layout operations after pause.</p>
+      </div>
+    </div>
+
+    <p><br></p>
+    <h2>Containers</h2>
+    <p><br></p>
+
+    <div class="snip">
+      <h3><a name="DropdownGroup">DropdownGroup</a></h3>
+      <p>A group controlled by a dropdown on top of a big container frame.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetTitle</strong>(text) - Set the title of the group.
+      </li><li><strong>SetGroupList</strong>(table [, order]) - Set the list of groups (key =&gt; value pairs) .The order is a optional second table, that contains the order in which the entrys should be displayed (Array table with the data tables keys as values). Behaviour is undefined if you provide a order table that contains not the exact same keys as in the data table.
+      </li><li><strong>SetGroup</strong>(key) - Set the active group.
+      </li><li><strong>SetDropdownWidth</strong>(width) - Set the width of the dropdown box.
+      </li><li><strong>SetStatusTable</strong>(table) - Set an external status table.
+      </li></ul>
+      <h4>Callbacks</h4>
+      <ul><li><strong>OnGroupSelected</strong>(group) - Fires when a new group selection occurs.
+      </li></ul>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="Frame">Frame</a></h3>
+      <p>A simple stand-alone container widget, usually the base of any UI.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetTitle</strong>(text) - Set the title of the frame.
+      </li><li><strong>SetStatusText</strong>(text) - Set the text in the status bar.
+      </li><li><strong>SetStatusTable</strong>(table) - Set an external status table.
+      </li><li><strong>ApplyStatus</strong>() - Apply the settings stored in the status table.
+      </li></ul>
+      <h4>Callbacks</h4>
+      <ul><li><strong>OnClose</strong>() - Fires when the frame is closed.
+      </li><li><strong>OnEnterStatusBar</strong>() - When the mouse enters the statusbar region of the frame.
+      </li><li><strong>OnLeaveStatusBar</strong>() - When the mouse leaves the statusbar region of the frame.
+      </li></ul>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="InlineGroup">InlineGroup</a></h3>
+      <p>A group designed to be used inline in other content, to group widgets.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetTitle</strong>(text) - Set the title of the inline group.
+      </li></ul>
+      <h4>Callbacks</h4>
+      <p><em>none</em></p>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="ScrollFrame">ScrollFrame</a></h3>
+      <p>A scrolling group, usually used inside another group to provide scrolling capabilities.<br>
+      Note that the container containing the ScrollFrame should always be set to the "Fill" layout, or the ScrollFrame will not function properly.</p>
+      <div><div><pre><span>scrollcontainer</span> <span>=</span> <span>AceGUI</span><span>:</span><span>Create</span><span>(</span><span>"SimpleGroup"</span><span>)</span> <span>--</span> <span>"InlineGroup"</span> <span>is</span> <span>also</span> <span>good</span>
+      <span>scrollcontainer:</span><span>SetFullWidth</span><span>(</span><span>true</span><span>)</span>
+      <span>scrollcontainer:</span><span>SetFullHeight</span><span>(</span><span>true</span><span>)</span> <span>--</span> <span>probably</span><span>?</span>
+      <span>scrollcontainer:</span><span>SetLayout</span><span>(</span><span>"Fill"</span><span>)</span> <span>--</span> <span>important</span><span>!</span>
+
+      <span>topContainer:</span><span>AddChild</span><span>(</span><span>scrollcontainer</span><span>)</span>
+
+      <span>scroll</span> <span>=</span> <span>AceGUI</span><span>:</span><span>Create</span><span>(</span><span>"ScrollFrame"</span><span>)</span>
+      <span>scroll:</span><span>SetLayout</span><span>(</span><span>"Flow"</span><span>)</span> <span>--</span> <span>probably</span><span>?</span>
+      <span>scrollcontainer:</span><span>AddChild</span><span>(</span><span>scroll</span><span>)</span>
+
+      <span>--</span> <span>...</span> <span>add</span> <span>your</span> <span>widgets</span> <span>to</span> <span>"scroll"</span>
+      </pre></div>
+      </div><h4>APIs</h4>
+      <ul><li><strong>SetScroll</strong>(value) - Set the scroll position.
+      </li><li><strong>SetStatusTable</strong>(table) - Set an external status table.
+      </li></ul>
+      <h4>Callbacks</h4>
+      <p><em>none</em></p>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="SimpleGroup">SimpleGroup</a></h3>
+      <p>An empty group with no title or graphics.</p>
+      <h4>APIs</h4>
+      <p><em>none</em></p>
+      <h4>Callbacks</h4>
+      <p><em>none</em></p>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="TabGroup">TabGroup</a></h3>
+      <p>A group controlled by tabs above it.</p>
+      <h4>APIs</h4>
+      <ul><li><strong>SetTitle</strong>(text) - Set the title of the group.
+      </li><li><strong>SetTabs</strong>(table) - Set the list of tabs. Tabs need to be provided as a array of {value = "key", text = "Visible Text" }. Additionally they can contain a "disabled" member.
+      </li><li><strong>SelectTab</strong>(key) - Select an tab.
+      </li><li><strong>SetStatusTable</strong>(table) - Set an external status table.
+      </li></ul>
+      <h4>Callbacks</h4>
+      <ul><li><strong>OnGroupSelected</strong>(group) - Fires when a new group selection occurs.
+      </li><li><strong>OnTabEnter</strong>(key, tab) - Fires when the cursor enters a tab.
+      </li><li><strong>OnTabLeave</strong>(key, tab) - Fires when the cursor leaves a tab.
+      </li></ul>
+      <p><br></p>
+    </div>
+
+    <div class="snip">
+      <h3><a name="TreeGroup">TreeGroup</a></h3>
+      <p>A tree-group widget.</p>
+      <h4>The <code>tree</code> table</h4>
+      <p>The basic tree-table is a array of sub-tables. Every entry in the array has to have a <code>value</code> and a <code>text</code> member, and an optional <code>icon</code> member. <br>
+      An optional <code>children</code> member can be provided, which simply contains another complete tree. <br>
+      Additionally, you can specify <code>visible</code> and <code>disabled</code> members to control the creation/behaviour of the table.</p>
+      <p><strong>Example</strong></p>
+      <div><div><pre><span>--[[</span>
+      <span>   Alpha</span>
+      <span>   Bravo</span>
+      <span>     -Charlie</span>
+      <span>     -Delta</span>
+      <span>       -Echo</span>
+      <span>   Foxtrot</span>
+      <span>]]</span>
+      <span>tree</span> <span>=</span> <span>{</span> 
+        <span>{</span> 
+          <span>value</span> <span>=</span> <span>"</span><span>A"</span><span>,</span>
+          <span>text</span> <span>=</span> <span>"</span><span>Alpha"</span><span>,</span>
+          <span>icon</span> <span>=</span> <span>"</span><span>Interface</span><span>\\</span><span>Icons</span><span>\\</span><span>INV_Drink_05"</span><span>,</span>
+        <span>},</span>
+        <span>{</span>
+          <span>value</span> <span>=</span> <span>"</span><span>B"</span><span>,</span>
+          <span>text</span> <span>=</span> <span>"</span><span>Bravo"</span><span>,</span>
+          <span>children</span> <span>=</span> <span>{</span>
+            <span>{</span> 
+              <span>value</span> <span>=</span> <span>"</span><span>C"</span><span>,</span> 
+              <span>text</span> <span>=</span> <span>"</span><span>Charlie"</span><span>,</span>
+            <span>},</span>
+            <span>{</span>
+              <span>value</span> <span>=</span> <span>"</span><span>D"</span><span>,</span>	
+              <span>text</span> <span>=</span> <span>"</span><span>Delta"</span><span>,</span>
+              <span>children</span> <span>=</span> <span>{</span> 
+                <span>{</span> 
+                  <span>value</span> <span>=</span> <span>"</span><span>E"</span><span>,</span>
+                  <span>text</span> <span>=</span> <span>"</span><span>Echo"</span>
+                <span>}</span> 
+              <span>}</span>
+            <span>}</span>
+          <span>}</span>
+        <span>},</span>
+        <span>{</span> 
+          <span>value</span> <span>=</span> <span>"</span><span>F"</span><span>,</span> 
+          <span>text</span> <span>=</span> <span>"</span><span>Foxtrot"</span><span>,</span>
+          <span>disabled</span> <span>=</span> <span>true</span><span>,</span>
+        <span>},</span>
+      <span>}</span>
+      </pre></div>
+      </div><h4>APIs</h4>
+      <ul><li><strong>SetTree</strong>(tree) - Set the tree to be displayed. See above for the format of the tree table.
+      </li><li><strong>SelectByPath</strong>(...) - Set the path in the tree given the raw keys.
+      </li><li><strong>SelectByValue</strong>(uniquevalue) - Set the path in the tree by a given unique value.
+      </li><li><strong>EnableButtonTooltips</strong>(flag) - Toggle the tooltips on the tree buttons.
+      </li><li><strong>SetStatusTable</strong>(table) - Set an external status table.
+      </li></ul>
+      <h4>Callbacks</h4>
+      <ul><li><strong>OnGroupSelected</strong>(group) - Fires when a new group selection occurs.
+      </li><li><strong>OnTreeResize</strong>(width) - Fires when the tree was resized by the user.
+      </li><li><strong>OnButtonEnter</strong>(path, frame) - Fires when the cursor enters a tree-button.
+      </li><li><strong>OnButtonLeave</strong>(path, frame) - Fires when the cursor leaves a tree-button.</li></ul>
+  </div>
+            
+</body>
+</html>
