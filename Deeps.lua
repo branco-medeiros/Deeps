@@ -1,4 +1,4 @@
-args = ...
+local name, ctx = ...
 
 local DEEPS = "Deeps"
 local DEEPS_DB = "DeepsDB"
@@ -384,17 +384,35 @@ end
 function Deeps:CreateTabSelectors(container)
   --- tabs controls
 	local this = self
-	local tabs = AceGUI:Create(CONTAINER)
+	local amr = ctx.Amr
+	local NormalColor = amr.Colors.Black
+	local ActiveColor = amr.Colors.Orange
+
+	local tabs = AceGUI:Create(CONTAINER)	
 	container:AddChild(tabs)
 	tabs:SetLayout("None")
+
+	local function CreateTabFn(id)
+		return function(btn)
+			if tabs._current then tabs._current:SetBackgroundColor(NormalColor) end
+			tabs._current = btn
+			btn:SetBackgroundColor(ActiveColor)
+			tabs:Fire("OnSelectTab", id)
+		end
+	end
 
 	tabs.SelectTab = function(self, id)
 		self:Fire("OnSelectTab", id)
 	end
 
-	local b1 = self:UICreateButton(tabs, "Spells", nil, function(btn) tabs:SelectTab("prio") end)
-	local b2 = self:UICreateButton(tabs, "Slots", nil, function(btn) tabs:SelectTab("slots") end)
-	local b3 = self:UICreateButton(tabs, "Conditions", nil, function(btn) tabs:SelectTab("conditions") end)
+	local b1 = self:UICreateButton(tabs, "Spells", nil, CreateTabFn("prio"))
+	b1:SetBackgroundColor(NormalColor)
+
+	local b2 = self:UICreateButton(tabs, "Slots", nil, CreateTabFn("slots"))
+	b2:SetBackgroundColor(NormalColor)
+
+	local b3 = self:UICreateButton(tabs, "Conditions", nil, CreateTabFn("conditions"))
+	b3:SetBackgroundColor(NormalColor)
 
 	SetPoints(b2, "CENTER")
 	SetPoints(b1, "CENTER", {"RIGHT", b2.frame, "LEFT", -10, 0})
@@ -691,7 +709,7 @@ end
 
 -------------------------------------------------------------------------------
 function Deeps:UICreateButton(container, text, width, onChange)
-	local item = AceGUI:Create("Button")
+	local item = AceGUI:Create("AmrUiButton")
 	item:SetText(text)
 	item:SetWidth(width or 100)
 	if onChange then item:SetCallback("OnClick", onChange) end

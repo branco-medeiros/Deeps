@@ -1,0 +1,16 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\FrameXML\UI.xsd">
+	<Script file="Amr.lua"/>
+	<!-- Container -->
+	<Script file="AmrUiButton.lua"/>
+	<Script file="AmrUiCheckBox.lua"/>
+	<Script file="AmrUiDropDown.lua"/>
+	<Script file="AmrUiFrame.lua"/>
+	<Script file="AmrUiIcon.lua"/>
+	<Script file="AmrUiLabel.lua"/>
+	<Script file="AmrUiPanel.lua"/>
+	<Script file="AmrUiScrollFrame.lua"/>
+	<Script file="AmrUiTabGroup.lua"/>
+	<Script file="AmrUiTextarea.lua"/>
+	<Script file="AmrUiTextButton.lua"/>
+</Ui>
