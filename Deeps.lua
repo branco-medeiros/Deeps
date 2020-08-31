@@ -17,6 +17,10 @@ local CANCEL_ICON = ""
 
 local DEEPS_INPUT_DLG = "DEEPS_INPUT_DLG"
 
+local PAGE_SPELLS = "prio"
+local PAGE_SLOTS = "slots"
+local PAGE_FUNCS = "conditions"
+
 local Deeps = LibStub("AceAddon-3.0"):NewAddon(
 	DEEPS, 
 	"AceConsole-3.0", 
@@ -223,7 +227,7 @@ function Deeps:Reload()
   -- fills the interface with the specified spec data
 
   self.SpecLabel:SetSpecName()
-	self.TabSelectors:SelectTab("prio")
+	self.TabSelectors:SelectTab(PAGE_SPELLS)
 
 	-- clear editors
 end
@@ -353,6 +357,18 @@ end
 
 -------------------------------------------------------------------------------
 function Deeps:CreateHeader(container, height)
+  --[[
+    create the 'main page' header; it contains the 
+    current spec icon and name; 
+    +-------+ 
+    | spec  | L2P - Priority Rotation for
+    | icon  | <spec name>
+    +-------+
+    #SetSpecName(name): sets the spec name
+    #SetSpecIcon(icon): sets the icon for the spec
+
+
+  ]]
 	-- spec label
 	local this = self
 
@@ -382,91 +398,34 @@ end
 
 -------------------------------------------------------------------------------
 function Deeps:CreateTabSelectors(container)
-  --- tabs controls
-	local this = self
-	local amr = ctx.Amr
-	local NormalColor = amr.Colors.Black
-	local ActiveColor = amr.Colors.Orange
-
-	local tabs = AceGUI:Create(CONTAINER)	
-	container:AddChild(tabs)
-	tabs:SetLayout("None")
-
-	local function CreateTabFn(id)
-		return function(btn)
-			if tabs._current then tabs._current:SetBackgroundColor(NormalColor) end
-			tabs._current = btn
-			btn:SetBackgroundColor(ActiveColor)
-			tabs:Fire("OnSelectTab", id)
-		end
-	end
-
-	tabs.SelectTab = function(self, id)
-		self:Fire("OnSelectTab", id)
-	end
-
-	local b1 = self:UICreateButton(tabs, "Spells", nil, CreateTabFn("prio"))
-	b1:SetBackgroundColor(NormalColor)
-
-	local b2 = self:UICreateButton(tabs, "Slots", nil, CreateTabFn("slots"))
-	b2:SetBackgroundColor(NormalColor)
-
-	local b3 = self:UICreateButton(tabs, "Conditions", nil, CreateTabFn("conditions"))
-	b3:SetBackgroundColor(NormalColor)
-
-	SetPoints(b2, "CENTER")
-	SetPoints(b1, "CENTER", {"RIGHT", b2.frame, "LEFT", -10, 0})
-	SetPoints(b3, "CENTER", {"LEFT", b2.frame, "RIGHT", 10, 0})
-
-	return tabs
-
+  --[[
+    Creates the buttons used to switch between the different
+    views used by the application (Spells, Slots and Conditions)
+  ]]
+  return self:CreateTabSelector(container)
+    :AddTab(PAGE_SPELLS, "Spells")
+    :AddTab(PAGE_SLOTS, "Slots")
+    :AddTab(PAGE_FUNCS, "Conditions");
 end
 
 -------------------------------------------------------------------------------
-function Deeps:CreateTabPages(container, tabs)
-  local main = self:CreateTabsContainer(container)
-	container:AddChild(main)
+function Deeps:CreateTabPages(container, selector)
+  local pages = self:CreatePageContainer(container)
 
-	local spells = self:CreateSpellsTab(main)
-	local slots = self:CreateSlotsTab(main)
-	local conditions = self:CreateConditionsTab(main)
+  pages
+    :AddPage(PAGE_SPELLS, self:CreatePageForSpells(tabs))
+    :AddPage(PAGE_SLOTS, self:CreatePageForSlots(tabs))
+    :AddPage(PAGE_FUNCS, self:CreatePageForConditions(tabs))
 
-	main.tabs = {
-		prio = spells, 
-		slots = slots,
-		conditions = conditions
-	}
-
-	tabs:SetCallback("OnSelectTab", function(widget, name, id)
-		--print("OnSelectTab - widget: ", widget, ", id: ", id)
-    local prev = main.currentTab
-    local cur = main.tabs[id]
-		if prev then prev:Deactivate() end
-		if cur then cur:Activate(container) end
-    main.currentTab = cur
+	selector:SetCallback("OnSelectTab", function(widget, name, id)
+    --print("OnSelectTab - widget: ", widget, ", id: ", id)
+    pages:SwitchTo(id)
 	end)
 
-	return main
+	return pages
 end
 
--------------------------------------------------------------------------------
-function Deeps:CreateTabsContainer(container)
-	local main = AceGUI:Create(CONTAINER)
-	container:AddChild(main)
-	main:SetLayout("None")
-	SetBorder(main, 16)
 
-	main.tabs = {}
-	main.AddTab = function(self, tab)
-		self.tabs[tab.TabId] = tab
-		self:AddChild(tab)
-		SetPoints(tab, {"TOPLEFT", 10, -10}, {"BOTTOMRIGHT", -10, 10})
-		if not tab.selected then tab.frame:Hide() end 
-		return self
-	end
-
-	return main
-end
 
 -------------------------------------------------------------------------------
 function Deeps:CreateFooter(container)
@@ -524,19 +483,19 @@ function Deeps:CreatePrioritiesTab()
 ]]
 
 
-	--print("creating prio tab")
-	local tab = self:UICreateTab("prio")
-	tab:SetLayout("None")
+	--print("creating spells page")
+	local page = AceGUI:Create(CONTAINER)
+	page:SetLayout("None")
 
-	--tab:SetUserData("table", {columns={.4, .6}, alignH="fill", alignV="fill", space=5})
 	--first col
+	--page:SetUserData("table", {columns={.4, .6}, alignH="fill", alignV="fill", space=5})
 	--print(">> first col")
 	col = AceGUI:Create("InlineGroup") --CONTAINER)
 	col:SetLayout("HeaderMainFooter")
 	col:SetFullHeight(true)
 	col:SetRelativeWidth(0.4)
 	col:SetAutoAdjustHeight(false)
-	tab:AddChild(col)
+	page:AddChild(col)
 
   -- first-col > priority list label
 	--print(">> first-col > priority list label")
@@ -624,44 +583,154 @@ end
 
 
 -------------------------------------------------------------------------------
-function Deeps:CreateSpellsTab(container)
-	local tab = self:UICreateTab(container, "spells")
-	tab:SetLayout("None")
+function Deeps:CreatePageForSpells(container)
+	local page = AceGUI:Create(CONTAINER)
+	page:SetLayout("None")
 
-	local select = self:UICreateListSelector(tab, "Spell Priorities")
-	SetPoints(select, "TOP", "LEFT", {"RIGHT", tab.frame, "CENTER"}, "BOTTOM")
-	tab.SpellList = select
+	local select = self:UICreateListSelector(page, "Spell Priorities")
+	SetPoints(select, "TOP", "LEFT", {"RIGHT", page.frame, "CENTER"}, "BOTTOM")
+	page.SpellList = select
 
 	local box = AceGUI:Create(CONTAINER)
-	tab:AddChild(box)
+	page:AddChild(box)
 	box:SetLayout("Fill")
 	box:SetHeight(40)
 	box:SetAutoAdjustHeight(false)
-	SetPoints(box, {"LEFT", tab.frame, "CENTER", 10, 0}, "TOP", "RIGHT")
-	tab.SpellIcon = self:UICreateSpellIcon(box)
-	return tab
+	SetPoints(box, {"LEFT", page.frame, "CENTER", 10, 0}, "TOP", "RIGHT")
+	page.SpellIcon = self:UICreateSpellIcon(box)
+	return page
 end
 
 
 
 -------------------------------------------------------------------------------
-function Deeps:CreateConditionsTab(container)
+function Deeps:CreatePageForConditions(container)
 	--print("creating conditions tab")
-  local tab = self:UICreateTab(container, "conditions") 
+  local tab = self:UICreateTab(container, PAGE_FUNCS) 
 	self:UICreateLabel(tab, "Conditions Tab")
 	return tab
 end
 
 
 -------------------------------------------------------------------------------
-function Deeps:CreateSlotsTab(container)
+function Deeps:CreatePageForSlots(container)
 	--print("creating slots tab")
-	local tab = self:UICreateTab(container, "slots")
+	local tab = self:UICreateTab(container, PAGE_SLOTS)
 	self:UICreateLabel(tab, "Slots Tab")
 	return tab
 end
 
 
+-------------------------------------------------------------------------------
+function Deeps:CreateTabSelector(container, NormalColor, ActiveColor)
+--[[
+  creates a 'tab control', actually just a list of buttons, centralized 
+  on the container; a 'current' tab is specified by id and can be retrieved
+  at any moment; when a tab is selected, the event 'onTabSelect(id)' is fired
+
+      [ button ] [  button   ] [  button  ] ....
+
+    #AddTab(id, text): adds a new tab;
+    #SelectTab(id): Selects the specified tab
+]]
+
+	local this = self
+	local amr = ctx.Amr
+	NormalColor = NormalColor or amr.Colors.Black;
+	ActiveColor = ActiveColor or amr.Colors.Orange;
+
+  local tabs = AceGUI:Create(CONTAINER)	
+  
+	container:AddChild(tabs)
+	tabs:SetLayout("None")
+
+	local function CreateTabHandler(id)
+		return function(btn)
+			if tabs._current then tabs._current:SetBackgroundColor(NormalColor) end
+			tabs._current = btn
+			btn:SetBackgroundColor(ActiveColor)
+			tabs:Fire("OnSelectTab", id)
+		end
+	end
+
+  tabs.AddTab = function(self, id, Text)
+    local btn = self:UICreateButton(self, Text, nil, CreateTabHandler(id))
+    btn:SetBackgroundColor(NormalColor)
+    if not self._ids  then self._ids = {} end
+    self._ids[id] = btn;
+
+    --adjusts the layout of each button
+    local buttons = tabs.children
+    local idx = math.floor(#buttons / 1) + 1;
+    local bi = 0
+    SetPoints(tabs.children[idx], "CENTER")
+
+    for bi = idx -1, 1, -1 do
+      local b1 = buttons[bi]
+      local b2 = buttons[bi+1]
+      SetPoints(b1, "CENTER", {"RIGHT", b2.frame, "LEFT", -10, 0})
+    end
+
+    for bi = idx + 1, #buttons do
+      local b1 = buttons[bi]
+      local b2 = buttons[bi-1]
+    	SetPoints(b1, "CENTER", {"LEFT", b2.frame, "RIGHT", 10, 0})
+    end
+    return self;
+  end;
+
+  tabs.SelectTab = function(self, id)
+    if self._ids then self._ids[id].frame:Click() end
+	end
+
+	return tabs
+
+end
+
+-------------------------------------------------------------------------------
+function Deeps:CreatePageContainer(container)
+  --[[
+    creates a container for pages, where only one page is
+    active at a given moment; when added to the control,
+    the page is set to fill the entire control area
+    #AddPage(id, widget): adds the widget to the control
+    #SwitchTo(id): switches to the page specified by id;
+      fires OnPageSelected(self, "OnPageSelected", id) 
+
+  ]]
+	local main = AceGUI:Create(CONTAINER)
+	container:AddChild(main)
+	main:SetLayout("None")
+	SetBorder(main, 16)
+
+	main._pages = {}
+	main.AddPage = function(self, id, page)
+    self._pages[id] = page
+    local added = false
+    -- if the item was not already added to the control,
+    -- add it
+    for _, v in pairs(self.children) do
+      if v == page then 
+        added = true
+        break
+      end
+    end
+		if not added then self:AddChild(page) end
+		SetPoints(page, {"TOPLEFT", 10, -10}, {"BOTTOMRIGHT", -10, 10})
+		page.frame:Hide()
+		return self
+  end
+  
+  main.SwitchTo = function(self, id)
+    if self._current then self._current.frame:Hide() end
+    self._current = self._pages[id]
+    if(self._current) then self._current.frame:Show() end
+    self:Fire("OnPageSelected", id)
+    return self._current
+  end
+
+  return main
+end
 
 -------------------------------------------------------------------------------
 function Deeps:UICreateTextBox(container, label, showOkButton)
